@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { mockWorkoutPlan } from '../../data/mock';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
 import { Dumbbell, Clock, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -12,9 +13,27 @@ const dayOrder = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'satur
 const today = dayOrder[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
 
 export default function WorkoutPlan() {
+  const { user } = useAuthStore();
+  const { workoutPlans } = useDataStore();
   const { day: dayParam } = useParams<{ day?: string }>();
   const [selectedDay, setSelectedDay] = useState(dayParam || today);
-  const plan = mockWorkoutPlan;
+
+  if (!user) return null;
+
+  const plan = workoutPlans.find(p => p.memberId === user.id);
+
+  if (!plan) {
+    return (
+      <div className="pb-24 md:pb-8 flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <div className="w-16 h-16 rounded-full bg-navy-600/10 flex items-center justify-center mb-4">
+          <Dumbbell className="w-8 h-8 text-navy-600/30" />
+        </div>
+        <h2 className="text-xl font-bold text-navy-600 mb-2">No Workout Plan Yet</h2>
+        <p className="text-sm text-navy-600/50 max-w-xs">Your trainer hasn't assigned a workout plan to you yet. Check back soon!</p>
+      </div>
+    );
+  }
+
   const currentDayData = plan.days.find(d => d.dayOfWeek === selectedDay);
 
   return (

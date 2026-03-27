@@ -132,6 +132,8 @@ export interface WorkoutVideo {
   duration: string;
   difficulty: 'beginner' | 'intermediate' | 'advanced';
   isActive: boolean;
+  views: number;
+  createdAt: string;
 }
 
 // Trainer Remark

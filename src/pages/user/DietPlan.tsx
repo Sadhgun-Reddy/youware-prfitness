@@ -1,6 +1,8 @@
 import { useState } from 'react';
-import { mockDietPlan } from '../../data/mock';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
 import { Clock, ChevronDown, ChevronUp } from 'lucide-react';
+import type { WeeklyProgress, DietPlan as DietPlanType, DietMeal, FoodItem } from '../../types';
 
 const mealIcons: Record<string, string> = {
   breakfast: '🌅', mid_morning: '🍎', lunch: '☀️', evening_snack: '🥜', dinner: '🌙',
@@ -11,8 +13,25 @@ const mealLabels: Record<string, string> = {
 };
 
 export default function DietPlan() {
-  const plan = mockDietPlan;
-  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set(plan.meals.map(m => m.type)));
+  const { user } = useAuthStore();
+  const { dietPlans } = useDataStore();
+
+  if (!user) return null;
+
+  const plan = dietPlans.find((p: DietPlanType) => p.memberId === user.id);
+  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set(plan?.meals.map((m: DietMeal) => m.type) || []));
+
+  if (!plan) {
+    return (
+      <div className="pb-24 md:pb-8 flex flex-col items-center justify-center min-h-[60vh] text-center px-6">
+        <div className="w-16 h-16 rounded-full bg-navy-600/10 flex items-center justify-center mb-4">
+          <span className="text-4xl text-navy-600/30">🍎</span>
+        </div>
+        <h2 className="text-xl font-bold text-navy-600 mb-2">No Diet Plan Yet</h2>
+        <p className="text-sm text-navy-600/50 max-w-xs">Your trainer is crafting your perfect nutrition guide. It will appear here soon!</p>
+      </div>
+    );
+  }
 
   const toggleMeal = (type: string) => {
     setExpandedMeals(prev => {
@@ -23,8 +42,8 @@ export default function DietPlan() {
     });
   };
 
-  const totalCalories = plan.meals.reduce((sum, m) => sum + m.items.reduce((s, item) => s + (item.calories || 0), 0), 0);
-  const totalProtein = plan.meals.reduce((sum, m) => sum + m.items.reduce((s, item) => s + (item.protein || 0), 0), 0);
+  const totalCalories = plan.meals.reduce((sum: number, m: DietMeal) => sum + m.items.reduce((s: number, item: FoodItem) => s + (item.calories || 0), 0), 0);
+  const totalProtein = plan.meals.reduce((sum: number, m: DietMeal) => sum + m.items.reduce((s: number, item: FoodItem) => s + (item.protein || 0), 0), 0);
 
   return (
     <div className="pb-24 md:pb-8">

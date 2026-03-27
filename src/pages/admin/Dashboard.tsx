@@ -1,9 +1,10 @@
-import { mockAdminStats, mockCheckIns, mockProgress, mockUsers } from '../../data/mock';
+import { useDataStore } from '../../store/useDataStore';
 import { Users, MapPin, BarChart3, Clock, AlertTriangle, CheckCircle, Eye } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function AdminDashboard() {
-  const stats = mockAdminStats;
+  const { getAdminStats, checkIns, progressSubmissions, members } = useDataStore();
+  const stats = getAdminStats();
 
   const kpiCards = [
     { label: 'Total Members', value: stats.totalMembers, icon: Users, color: 'bg-navy-600', change: '' },
@@ -12,6 +13,10 @@ export default function AdminDashboard() {
     { label: 'Pending Reviews', value: stats.pendingReviews, icon: BarChart3, color: 'bg-error', change: '' },
     { label: 'Expiring Soon', value: stats.expiringSoon, icon: Clock, color: 'bg-amber-500', change: '7 days' },
   ];
+
+  const todayStr = new Date().toDateString();
+  const recentCheckIns = checkIns.filter(c => new Date(c.checkedInAt).toDateString() === todayStr).slice(0, 10);
+  const pendingReviews = progressSubmissions.filter(p => !p.reviewed).slice(0, 10);
 
   return (
     <div>
@@ -44,7 +49,7 @@ export default function AdminDashboard() {
             <Link to="/admin/checkins" className="text-xs text-accent-500 font-medium hover:underline">View All</Link>
           </div>
           <div className="space-y-2">
-            {mockCheckIns.map(ci => (
+            {recentCheckIns.map(ci => (
               <div key={ci.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-offwhite-100 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-navy-600/10 flex items-center justify-center text-sm font-bold text-navy-600">
                   {ci.memberName.charAt(0)}
@@ -56,7 +61,7 @@ export default function AdminDashboard() {
                 <CheckCircle className="w-4 h-4 text-success" />
               </div>
             ))}
-            {mockCheckIns.length === 0 && <p className="text-sm text-navy-600/40 text-center py-4">No check-ins yet today</p>}
+            {recentCheckIns.length === 0 && <p className="text-sm text-navy-600/40 text-center py-4">No check-ins yet today</p>}
           </div>
         </div>
 
@@ -67,7 +72,7 @@ export default function AdminDashboard() {
             <Link to="/admin/progress" className="text-xs text-accent-500 font-medium hover:underline">View All</Link>
           </div>
           <div className="space-y-2">
-            {mockProgress.filter(p => !p.reviewed).map(p => (
+            {pendingReviews.map(p => (
               <Link key={p.id} to={`/admin/progress/${p.id}`} className="flex items-center gap-3 p-2 rounded-lg hover:bg-offwhite-100 transition-colors">
                 <div className="w-8 h-8 rounded-full bg-accent-50 flex items-center justify-center text-sm font-bold text-accent-700">
                   {p.memberName.charAt(0)}
@@ -79,7 +84,7 @@ export default function AdminDashboard() {
                 <Eye className="w-4 h-4 text-navy-600/30" />
               </Link>
             ))}
-            {mockProgress.filter(p => !p.reviewed).length === 0 && (
+            {pendingReviews.length === 0 && (
               <p className="text-sm text-navy-600/40 text-center py-4">All reviews caught up! 🎉</p>
             )}
           </div>
@@ -94,10 +99,10 @@ export default function AdminDashboard() {
             <h3 className="font-semibold text-amber-800">Expiring Soon</h3>
           </div>
           <div className="space-y-2">
-            {mockUsers.filter(u => {
-              const exp = new Date(u.membershipEndDate);
+            {members.filter(m => {
+              const exp = new Date(m.membershipEndDate);
               const diff = (exp.getTime() - Date.now()) / (1000 * 60 * 60 * 24);
-              return diff <= 7 && diff >= 0 && u.status === 'active';
+              return diff <= 7 && diff >= 0 && m.status === 'active';
             }).map(u => (
               <div key={u.id} className="flex items-center justify-between text-sm">
                 <span className="text-amber-800 font-medium">{u.name}</span>

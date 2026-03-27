@@ -1,14 +1,16 @@
 import { useAuthStore } from '../../store/useAuthStore';
-import { mockCheckIns } from '../../data/mock';
+import { useDataStore } from '../../store/useDataStore';
 import { CalendarDays, CheckCircle, Flame } from 'lucide-react';
 
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 export default function Attendance() {
   const { user } = useAuthStore();
+  const { checkIns } = useDataStore();
+  
   if (!user) return null;
 
-  const myCheckIns = mockCheckIns.filter(c => c.memberId === user.id);
+  const myCheckIns = checkIns.filter(c => c.memberId === user.id);
   // Generate calendar data for current month
   const now = new Date();
   const year = now.getFullYear();
@@ -16,8 +18,12 @@ export default function Attendance() {
   const daysInMonth = new Date(year, month + 1, 0).getDate();
   const firstDayOfWeek = new Date(year, month, 1).getDay();
   const checkedInDates = new Set(myCheckIns.map(c => new Date(c.checkedInAt).getDate()));
-  const totalDays = myCheckIns.length;
-  const streak = 12;
+  const totalDays = myCheckIns.filter(c => {
+    const d = new Date(c.checkedInAt);
+    return d.getMonth() === month && d.getFullYear() === year;
+  }).length;
+  
+  const streak = 12; // In a real app, this would be calculated from the full history
 
   return (
     <div className="pb-24 md:pb-8">
@@ -95,6 +101,9 @@ export default function Attendance() {
             </div>
           </div>
         ))}
+        {myCheckIns.length === 0 && (
+          <p className="text-sm text-navy-600/40 text-center py-4">No check-in history found</p>
+        )}
       </div>
     </div>
   );

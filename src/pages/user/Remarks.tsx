@@ -1,15 +1,21 @@
-import { mockRemarks } from '../../data/mock';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
 import { MessageSquare, Clock } from 'lucide-react';
+import type { TrainerRemark } from '../../types';
 
 export default function Remarks() {
-  const remarks = mockRemarks;
+  const { user } = useAuthStore();
+  const { remarks } = useDataStore();
+  
+  if (!user) return null;
+  const myRemarks = remarks.filter((r: TrainerRemark) => r.memberId === user.id);
 
   return (
     <div className="pb-24 md:pb-8">
       <h1 className="page-header mb-6">Trainer Remarks</h1>
 
       <div className="space-y-3">
-        {remarks.map(remark => (
+        {myRemarks.map(remark => (
           <div key={remark.id} className={`card !p-5 ${remark.isNew ? 'border-2 border-accent-500/20' : ''}`}>
             <div className="flex items-start justify-between mb-2">
               <div className="flex items-center gap-2">
@@ -27,7 +33,7 @@ export default function Remarks() {
             </div>
           </div>
         ))}
-        {remarks.length === 0 && (
+        {myRemarks.length === 0 && (
           <div className="text-center py-16">
             <MessageSquare className="w-12 h-12 text-navy-600/20 mx-auto mb-3" />
             <p className="text-navy-600/40">No remarks yet</p>
