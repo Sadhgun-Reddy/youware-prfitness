@@ -10,6 +10,15 @@ import RegisterStep1 from './pages/auth/RegisterStep1';
 import RegisterStep2 from './pages/auth/RegisterStep2';
 import RegisterStep3 from './pages/auth/RegisterStep3';
 import PlanSelection from './pages/auth/PlanSelection';
+import PaymentSuccess from './pages/auth/PaymentSuccess';
+import ForgotPassword from './pages/auth/ForgotPassword';
+import ResetPassword from './pages/auth/ResetPassword';
+
+// Utility Pages
+import NotFound from './pages/utility/NotFound';
+import ServerError from './pages/utility/ServerError';
+import Unauthorised from './pages/utility/Unauthorised';
+import SessionExpired from './pages/utility/SessionExpired';
 
 // Layouts
 import UserLayout from './layouts/UserLayout';
@@ -20,8 +29,10 @@ import UserDashboard from './pages/user/Dashboard';
 import CheckIn from './pages/user/CheckIn';
 import Attendance from './pages/user/Attendance';
 import Progress from './pages/user/Progress';
+import ProgressHistory from './pages/user/ProgressHistory';
 import ProgressSubmit from './pages/user/ProgressSubmit';
 import Videos from './pages/user/Videos';
+import VideoPlayer from './pages/user/VideoPlayer';
 import WorkoutPlan from './pages/user/WorkoutPlan';
 import DietPlan from './pages/user/DietPlan';
 import Remarks from './pages/user/Remarks';
@@ -58,9 +69,10 @@ function AppRoutes() {
       <Route path="/register/step-3" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep3 />} />
       <Route path="/register/plan-select" element={<PlanSelection />} />
       <Route path="/register/payment" element={<PlanSelection />} />
-      <Route path="/register/payment-success" element={<Navigate to="/dashboard" />} />
+      <Route path="/register/payment-success" element={<PaymentSuccess />} />
       <Route path="/register/payment-failure" element={<PlanSelection />} />
-      <Route path="/forgot-password" element={<div className="min-h-screen flex items-center justify-center"><div className="card !p-8 text-center max-w-md"><h1 className="text-xl font-bold text-navy-600 mb-2">Forgot Password</h1><p className="text-sm text-navy-600/50 mb-4">Enter your email to receive a reset link.</p><input type="email" className="input-field mb-4" placeholder="you@example.com" /><button className="btn-primary w-full">Send Reset Link</button></div></div>} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password" element={<ResetPassword />} />
 
       {/* Member Routes */}
       <Route path="/dashboard" element={isAuthenticated && role === 'member' ? <UserLayout /> : <Navigate to="/login" />}>
@@ -72,10 +84,12 @@ function AppRoutes() {
         <Route path="/checkin" element={<CheckIn />} />
         <Route path="/attendance" element={<Attendance />} />
         <Route path="/progress" element={<Progress />} />
+        <Route path="/progress/history" element={<ProgressHistory />} />
         <Route path="/progress/submit" element={<ProgressSubmit />} />
         <Route path="/progress/history/:weekId" element={<Progress />} />
         <Route path="/videos" element={<Videos />} />
         <Route path="/videos/:categorySlug" element={<Videos />} />
+        <Route path="/videos/:categorySlug/:videoId" element={<VideoPlayer />} />
         <Route path="/plan/workout" element={<WorkoutPlan />} />
         <Route path="/plan/workout/:day" element={<WorkoutPlan />} />
         <Route path="/plan/diet" element={<DietPlan />} />
@@ -102,8 +116,14 @@ function AppRoutes() {
         <Route path="settings" element={<AdminSettings />} />
       </Route>
 
+      {/* Utility Pages */}
+      <Route path="/404" element={<NotFound />} />
+      <Route path="/500" element={<ServerError />} />
+      <Route path="/unauthorised" element={<Unauthorised />} />
+      <Route path="/session-expired" element={<SessionExpired />} />
+
       {/* Catch all */}
-      <Route path="*" element={<Navigate to="/" />} />
+      <Route path="*" element={<Navigate to="/404" />} />
     </Routes>
   );
 }

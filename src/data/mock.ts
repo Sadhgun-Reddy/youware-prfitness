@@ -40,8 +40,8 @@ export const mockAdmin: Admin = {
   email: 'admin@fitsyncp.in',
   gymName: 'FitZone Gym',
   gymLocation: 'Andheri West, Mumbai 400058',
-  gymLat: 19.1197,
-  gymLng: 72.8464,
+  gymLat: 17.40543319658704,
+  gymLng: 78.56992063050812,
   geofenceRadius: 100,
 };
 
