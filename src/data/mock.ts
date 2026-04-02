@@ -1,4 +1,4 @@
-import type { User, Admin, CheckInRecord, WeeklyProgress, WorkoutPlan, DietPlan, WorkoutVideo, TrainerRemark, Notification, MembershipPlanConfig } from '../types';
+import type { User, Admin, CheckInRecord, WeeklyProgress, WorkoutPlan, DietPlan, WorkoutVideo, TrainerRemark, Notification, MembershipPlanConfig, AdminStats } from '../types';
 
 // Membership Plans
 export const membershipPlans: MembershipPlanConfig[] = [
@@ -297,16 +297,56 @@ export const mockDietPlan: DietPlan = {
 
 // Video library
 export const mockVideos: WorkoutVideo[] = [
-  { id: 'v1', title: 'Bench Press Basics', description: 'Learn proper bench press form and technique.', thumbnailUrl: '', videoUrl: '', category: 'Chest', categorySlug: 'chest', duration: '8:30', difficulty: 'beginner', isActive: true },
-  { id: 'v2', title: 'Incline Dumbbell Press', description: 'Target upper chest with incline presses.', thumbnailUrl: '', videoUrl: '', category: 'Chest', categorySlug: 'chest', duration: '6:45', difficulty: 'intermediate', isActive: true },
-  { id: 'v3', title: 'Cable Crossovers', description: 'Isolate chest muscles with cable flyes.', thumbnailUrl: '', videoUrl: '', category: 'Chest', categorySlug: 'chest', duration: '5:20', difficulty: 'intermediate', isActive: true },
-  { id: 'v4', title: 'Barbell Squats', description: 'Master the king of leg exercises.', thumbnailUrl: '', videoUrl: '', category: 'Legs', categorySlug: 'legs', duration: '10:15', difficulty: 'beginner', isActive: true },
-  { id: 'v5', title: 'Romanian Deadlifts', description: 'Build hamstrings and glutes with RDLs.', thumbnailUrl: '', videoUrl: '', category: 'Legs', categorySlug: 'legs', duration: '7:00', difficulty: 'intermediate', isActive: true },
-  { id: 'v6', title: 'Pull-Up Mastery', description: 'Progressions from zero to 15+ pull-ups.', thumbnailUrl: '', videoUrl: '', category: 'Back', categorySlug: 'back', duration: '12:00', difficulty: 'beginner', isActive: true },
-  { id: 'v7', title: 'Barbell Rows', description: 'Build a thick back with barbell rows.', thumbnailUrl: '', videoUrl: '', category: 'Back', categorySlug: 'back', duration: '8:00', difficulty: 'intermediate', isActive: true },
-  { id: 'v8', title: 'Overhead Press', description: 'Build strong shoulders with OHP.', thumbnailUrl: '', videoUrl: '', category: 'Shoulders', categorySlug: 'shoulders', duration: '7:30', difficulty: 'beginner', isActive: true },
-  { id: 'v9', title: 'Core Circuit', description: '15-minute ab circuit for all levels.', thumbnailUrl: '', videoUrl: '', category: 'Core', categorySlug: 'core', duration: '15:00', difficulty: 'beginner', isActive: true },
-  { id: 'v10', title: 'HIIT Cardio Blast', description: 'High-intensity interval training for fat loss.', thumbnailUrl: '', videoUrl: '', category: 'Cardio', categorySlug: 'cardio', duration: '20:00', difficulty: 'advanced', isActive: true },
+  {
+    id: 'v1', title: 'Bench Press Basics', description: 'Learn proper bench press form and technique.', thumbnailUrl: '', videoUrl: '', category: 'Chest', categorySlug: 'chest', duration: '8:30', difficulty: 'beginner', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v2', title: 'Incline Dumbbell Press', description: 'Target upper chest with incline presses.', thumbnailUrl: '', videoUrl: '', category: 'Chest', categorySlug: 'chest', duration: '6:45', difficulty: 'intermediate', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v3', title: 'Cable Crossovers', description: 'Isolate chest muscles with cable flyes.', thumbnailUrl: '', videoUrl: '', category: 'Chest', categorySlug: 'chest', duration: '5:20', difficulty: 'intermediate', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v4', title: 'Barbell Squats', description: 'Master the king of leg exercises.', thumbnailUrl: '', videoUrl: '', category: 'Legs', categorySlug: 'legs', duration: '10:15', difficulty: 'beginner', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v5', title: 'Romanian Deadlifts', description: 'Build hamstrings and glutes with RDLs.', thumbnailUrl: '', videoUrl: '', category: 'Legs', categorySlug: 'legs', duration: '7:00', difficulty: 'intermediate', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v6', title: 'Pull-Up Mastery', description: 'Progressions from zero to 15+ pull-ups.', thumbnailUrl: '', videoUrl: '', category: 'Back', categorySlug: 'back', duration: '12:00', difficulty: 'beginner', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v7', title: 'Barbell Rows', description: 'Build a thick back with barbell rows.', thumbnailUrl: '', videoUrl: '', category: 'Back', categorySlug: 'back', duration: '8:00', difficulty: 'intermediate', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v8', title: 'Overhead Press', description: 'Build strong shoulders with OHP.', thumbnailUrl: '', videoUrl: '', category: 'Shoulders', categorySlug: 'shoulders', duration: '7:30', difficulty: 'beginner', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v9', title: 'Core Circuit', description: '15-minute ab circuit for all levels.', thumbnailUrl: '', videoUrl: '', category: 'Core', categorySlug: 'core', duration: '15:00', difficulty: 'beginner', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
+  {
+    id: 'v10', title: 'HIIT Cardio Blast', description: 'High-intensity interval training for fat loss.', thumbnailUrl: '', videoUrl: '', category: 'Cardio', categorySlug: 'cardio', duration: '20:00', difficulty: 'advanced', isActive: true,
+    views: 0,
+    createdAt: ''
+  },
 ];
 
 // Trainer remarks

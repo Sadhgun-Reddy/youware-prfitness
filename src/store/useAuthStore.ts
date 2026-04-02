@@ -9,6 +9,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       admin: null,
       role: null,
+      token: undefined,
 
       login: (email: string, _password: string) => {
         // Mock login - will be replaced with API call
@@ -33,19 +34,20 @@ export const useAuthStore = create<AuthState>()(
             createdAt: '2025-01-15',
           } as User,
           role: 'member',
+          token: `mock-token-${Date.now()}-${email}`,
         });
       },
 
       loginAsUser: (user: User) => {
-        set({ isAuthenticated: true, user, role: 'member', admin: null });
+        set({ isAuthenticated: true, user, role: 'member', admin: null, token: `mock-token-user-${Date.now()}` });
       },
 
       loginAsAdmin: (admin: Admin) => {
-        set({ isAuthenticated: true, admin, role: 'admin', user: null });
+        set({ isAuthenticated: true, admin, role: 'admin', user: null, token: `mock-token-admin-${Date.now()}` });
       },
 
       logout: () => {
-        set({ isAuthenticated: false, user: null, admin: null, role: null });
+        set({ isAuthenticated: false, user: null, admin: null, role: null, token: undefined });
       },
     }),
     {

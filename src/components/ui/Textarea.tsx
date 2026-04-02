@@ -4,9 +4,10 @@ import type { TextareaHTMLAttributes } from 'react';
 interface TextareaProps extends TextareaHTMLAttributes<HTMLTextAreaElement> {
   label?: string;
   error?: string;
+  icon?: React.ReactNode;
 }
 
-export default function Textarea({ label, error, className, id, ...props }: TextareaProps) {
+export default function Textarea({ label, error, className, id, icon, ...props }: TextareaProps) {
   const inputId = id || label?.toLowerCase().replace(/\s+/g, '-');
   return (
     <div className="w-full">
@@ -14,6 +15,9 @@ export default function Textarea({ label, error, className, id, ...props }: Text
         <label htmlFor={inputId} className="block text-sm font-medium text-dark-300 mb-1.5">
           {label}
         </label>
+      )}
+      {icon && (
+        <div className="mb-2 text-sm text-dark-400 inline-block">{icon}</div>
       )}
       <textarea
         id={inputId}

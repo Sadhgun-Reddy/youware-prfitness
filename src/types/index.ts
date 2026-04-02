@@ -1,7 +1,15 @@
 // User types
 export type MembershipPlan = 'normal' | 'personal_training';
 export type Gender = 'male' | 'female' | 'other';
-export type FitnessGoal = 'weight_loss' | 'muscle_gain' | 'general_fitness';
+// Expanded fitness goals to align with UI options across the registration flow.
+export type FitnessGoal =
+  | 'weight_loss'
+  | 'muscle_gain'
+  | 'general_fitness'
+  | 'fitness'
+  | 'flexibility'
+  | 'rehabilitation'
+  | 'general';
 export type UserStatus = 'active' | 'pending_payment' | 'expired';
 
 export interface User {
@@ -185,6 +193,7 @@ export interface AuthState {
   user: User | null;
   admin: Admin | null;
   role: 'member' | 'admin' | null;
+  token?: string;
   login: (email: string, password: string) => void;
   loginAsUser: (user: User) => void;
   loginAsAdmin: (admin: Admin) => void;

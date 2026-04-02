@@ -10,6 +10,9 @@ import RegisterStep1 from './pages/auth/RegisterStep1';
 import RegisterStep2 from './pages/auth/RegisterStep2';
 import RegisterStep3 from './pages/auth/RegisterStep3';
 import PlanSelection from './pages/auth/PlanSelection';
+import Payment from './pages/auth/Payment';
+import AuthLayout from './layouts/AuthLayout';
+import StitchDemo from './pages/design/StitchDemo';
 import PaymentSuccess from './pages/auth/PaymentSuccess';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
@@ -51,31 +54,38 @@ import DietPlans from './pages/admin/DietPlans';
 import VideoManagement from './pages/admin/VideoManagement';
 import AdminSettings from './pages/admin/Settings';
 
-// Initialize auth with mock data for demo
-const { loginAsUser } = useAuthStore.getState();
-loginAsUser(mockUsers[0]);
+// Dev-only auto-login removed to allow access to login/signup pages.
 
 function AppRoutes() {
-  const isAuthenticated = useAuthStore((s) => s.isAuthenticated);
+  // Treat presence of a valid token as authentication as well as isAuthenticated flag
+  const isAuthenticated = useAuthStore((s) => s.isAuthenticated && !!s.token);
   const role = useAuthStore((s) => s.role);
 
   return (
     <Routes>
-      {/* Public Routes */}
-      <Route path="/" element={<Landing />} />
-      <Route path="/login" element={isAuthenticated && role === 'member' ? <Navigate to="/dashboard" /> : isAuthenticated && role === 'admin' ? <Navigate to="/admin" /> : <Login />} />
-      <Route path="/register/step-1" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep1 />} />
-      <Route path="/register/step-2" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep2 />} />
-      <Route path="/register/step-3" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep3 />} />
-      <Route path="/register/plan-select" element={<PlanSelection />} />
-      <Route path="/register/payment" element={<PlanSelection />} />
-      <Route path="/register/payment-success" element={<PaymentSuccess />} />
-      <Route path="/register/payment-failure" element={<PlanSelection />} />
-      <Route path="/forgot-password" element={<ForgotPassword />} />
-      <Route path="/reset-password" element={<ResetPassword />} />
+      {/* Auth Routes (Header present via layout) */}
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={isAuthenticated && role === 'member' ? <Navigate to="/dashboard" /> : isAuthenticated && role === 'admin' ? <Navigate to="/admin" /> : <Login />} />
+        <Route path="/register/step-1" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep1 />} />
+        <Route path="/register/step-2" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep2 />} />
+        <Route path="/register/step-3" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep3 />} />
+        <Route path="/register/plan-select" element={<PlanSelection />} />
+        <Route path="/register/payment" element={<Payment />} />
+        <Route path="/register/payment-success" element={<PaymentSuccess />} />
+        <Route path="/register/payment-failure" element={<PlanSelection />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route path="/reset-password" element={<ResetPassword />} />
+      </Route>
 
+      {/* Landing page remains outside auth layout to avoid header duplication */}
+      <Route path="/" element={<Landing />} />
+
+      {/* Stitch/Design conversions demo */}
+      <Route path="/design/stitch/demo" element={<StitchDemo />} />
+
+      {/* Admin & Member routes remain as before but now auth layout applies to login/register only */}
       {/* Member Routes */}
-      <Route path="/dashboard" element={isAuthenticated && role === 'member' ? <UserLayout /> : <Navigate to="/login" />}>
+      <Route path="/dashboard" element={isAuthenticated && role === 'member' ? <UserLayout /> : <Navigate to="/login" />}> 
         <Route index element={<UserDashboard />} />
         <Route path="membership" element={<MembershipPage />} />
       </Route>

@@ -7,10 +7,6 @@ export default function ProgressReviews() {
   const { submissionId } = useParams<{ submissionId?: string }>();
   const { progressSubmissions } = useDataStore();
 
-  if (submissionId) {
-    return <SubmissionDetail id={submissionId} />;
-  }
-
   const unreviewed = progressSubmissions.filter(p => !p.reviewed);
   const reviewed = progressSubmissions.filter(p => p.reviewed);
   const [tab, setTab] = useState<'pending' | 'reviewed'>('pending');
@@ -18,46 +14,52 @@ export default function ProgressReviews() {
 
   return (
     <div>
-      <h1 className="page-header mb-6">Progress Submissions</h1>
+      {submissionId ? (
+        <SubmissionDetail id={submissionId} />
+      ) : (
+        <>
+          <h1 className="page-header mb-6">Progress Submissions</h1>
 
-      <div className="flex gap-1 bg-offwhite-200 rounded-xl p-1 mb-6">
-        <button onClick={() => setTab('pending')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'pending' ? 'bg-white text-navy-600 shadow-sm' : 'text-navy-600/50'}`}>
-          Pending ({unreviewed.length})
-        </button>
-        <button onClick={() => setTab('reviewed')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'reviewed' ? 'bg-white text-navy-600 shadow-sm' : 'text-navy-600/50'}`}>
-          Reviewed ({reviewed.length})
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        {list.map(p => (
-          <Link key={p.id} to={`/admin/progress/${p.id}`} className="card-hover block group">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-navy-600/10 flex items-center justify-center text-sm font-bold text-navy-600">
-                {p.memberName.charAt(0)}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-navy-600">{p.memberName}</p>
-                <p className="text-xs text-navy-600/40">Week of {new Date(p.weekStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm font-bold text-navy-600">{p.weight}<span className="text-xs font-normal text-navy-600/40"> kg</span></p>
-                {p.reviewed ? (
-                  <span className="badge-success">Reviewed</span>
-                ) : (
-                  <span className="badge-error">New</span>
-                )}
-              </div>
-            </div>
-          </Link>
-        ))}
-        {list.length === 0 && (
-          <div className="text-center py-12">
-            <CheckCircle className="w-12 h-12 text-success/30 mx-auto mb-3" />
-            <p className="text-navy-600/40">All caught up!</p>
+          <div className="flex gap-1 bg-offwhite-200 rounded-xl p-1 mb-6">
+            <button onClick={() => setTab('pending')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'pending' ? 'bg-white text-navy-600 shadow-sm' : 'text-navy-600/50'}`}>
+              Pending ({unreviewed.length})
+            </button>
+            <button onClick={() => setTab('reviewed')} className={`flex-1 py-2 text-sm font-medium rounded-lg transition-all ${tab === 'reviewed' ? 'bg-white text-navy-600 shadow-sm' : 'text-navy-600/50'}`}>
+              Reviewed ({reviewed.length})
+            </button>
           </div>
-        )}
-      </div>
+
+          <div className="space-y-2">
+            {list.map(p => (
+              <Link key={p.id} to={`/admin/progress/${p.id}`} className="card-hover block group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-navy-600/10 flex items-center justify-center text-sm font-bold text-navy-600">
+                    {p.memberName.charAt(0)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-navy-600">{p.memberName}</p>
+                    <p className="text-xs text-navy-600/40">Week of {new Date(p.weekStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-navy-600">{p.weight}<span className="text-xs font-normal text-navy-600/40"> kg</span></p>
+                    {p.reviewed ? (
+                      <span className="badge-success">Reviewed</span>
+                    ) : (
+                      <span className="badge-error">New</span>
+                    )}
+                  </div>
+                </div>
+              </Link>
+            ))}
+            {list.length === 0 && (
+              <div className="text-center py-12">
+                <CheckCircle className="w-12 h-12 text-success/30 mx-auto mb-3" />
+                <p className="text-navy-600/40">All caught up!</p>
+              </div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   );
 }

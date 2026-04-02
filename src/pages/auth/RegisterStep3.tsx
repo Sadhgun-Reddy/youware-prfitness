@@ -26,8 +26,8 @@ export default function RegisterStep3() {
   const validate = (): boolean => {
     if (!form) return false;
     const e: Record<string, string> = {};
-    if (!form.gymName.trim()) e.gymName = 'Gym name is required';
-    if (!form.gymLocation.trim()) e.gymLocation = 'Gym location is required';
+    if (!form.gymName.trim()) (e as any)['gymName'] = 'Gym name is required';
+    if (!form.gymLocation.trim()) (e as any)['gymLocation'] = 'Gym location is required';
     setErrors(e);
     return Object.keys(e).length === 0;
   };
