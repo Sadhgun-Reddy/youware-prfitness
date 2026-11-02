@@ -1,360 +1,562 @@
-import { Link } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { user } = useAuthStore();
-  
-  const memberName = user?.name || 'Alex Rivera';
-  // const isPT = user?.planType === 'personal_training';
-   const isPT = false; 
-  const planType = isPT ? 'Personal Training' : 'Normal Membership';
-  const validFrom = 'Oct 12, 2023';
-  const validUntil = 'Oct 12, 2024';
-  const daysRemaining = isPT ? 25 : 30;
-  const streakDays = isPT ? 7 : 5;
+  const { checkIns, progressSubmissions, workoutPlans, dietPlans, remarks, videos, addCheckIn, adminSettings } = useDataStore();
 
-  const weeklyData = [
-    { day: 'M', active: true },
-    { day: 'T', active: true },
-    { day: 'W', active: true },
-    { day: 'T', active: true },
-    { day: 'F', active: true },
-    { day: 'S', active: true },
-    { day: 'S', active: true, isToday: true },
-  ];
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInMsg, setCheckInMsg] = useState('');
 
-  const weekDaysChart = [
-    { day: 'MON', height: 16 },
-    { day: 'TUE', height: 20 },
-    { day: 'WED', height: 12 },
-    { day: 'THU', height: 22 },
-    { day: 'FRI', height: 24, isActive: true },
-    { day: 'SAT', height: 0 },
-    { day: 'SUN', height: 0 },
-  ];
+  // Fallback member if none
+  const currentMember = user || {
+    id: 'm1',
+    name: 'Arjun Mehta',
+    email: 'arjun@example.com',
+    planType: 'personal_training' as const,
+    membershipStartDate: '2025-01-15',
+    membershipEndDate: '2025-02-15',
+    status: 'active' as const,
+  };
 
-  const exercises = [
-    { num: '01', name: 'Incline Barbell Bench Press', reps: '4 Sets x 8-10 Reps • 90s Rest' },
-    { num: '02', name: 'Weighted Chest Dips', reps: '3 Sets x 12 Reps • 60s Rest' },
-    { num: '03', name: 'Triceps Rope Pushdowns', reps: '4 Sets x 15 Reps • Burnout Set' },
-  ];
+  const isPT = currentMember.planType === 'personal_training';
+  const planLabel = isPT ? 'Personal Training' : 'Normal Membership';
 
-  const activityHistory = [
-    { type: 'strength', title: 'Full Body Strength', time: 'Yesterday, 5:45 PM', icon: 'history' },
-    { type: 'cardio', title: 'HIIT Cardio Session', time: 'Monday, 07:12 AM', icon: 'directions_run' },
-    { type: 'weight', title: 'Weight Entry', time: 'Oct 05, 08:00 AM', icon: 'fitness_center' },
-  ];
+  // Membership expiry calculation
+  const today = new Date();
+  const endDate = new Date(currentMember.membershipEndDate);
+  const daysRemaining = Math.max(0, Math.ceil((endDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)));
+  const isExpiringSoon = daysRemaining <= 7;
 
-  const videoLibrary = [
-    { title: 'Advanced Deadlift Form', category: 'Strength • Pro Series', duration: '12:45', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBUmzQhobxyTCefktTKxq-Tg3t7kLggXe16WfNZQR0cV-V3oYmG16uftV1p9qEL2dNGV4aWfzBpn5Z-BaUHeSuwBSHU_eWYv4c8GZtwrJFGg-phN0CjtedeWn88yRH82PMEMPTKLnN1K3CjEMY5zJxGeZlbEkbJt5hb9_TNvjCpcIBUvtIMG5vSzh6K-lOTcHQT00pO_qA_ulHoJd8FjFZ3UjzOlaWDiW380QRAqJd414CFLE5r2F69q_6ROgK5WFf1nqcOidha3aY' },
-    { title: 'Restorative Flow Yoga', category: 'Recovery • Daily Vitality', duration: '24:10', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCyhoT-mtMSPoi1KSd87niESqJboUIzu0uw8UomxlVbT95lnvA035NmU5vUNjl-aCTR-fmiQi5rTLG4PXjUNRCogCvLkCE9UvbWMjKh0j420YkDAALhir0Kz-w1sCohqBw7YwvBPZrsk-TPZDfDz1wSLn266gGQ_0hAAXhPvXtThtC-MvbZ26FYUZwx2GuYp6xC12BKhwiWSb15mfANC5OTE3--AE87N3BGLzF41SZ9mhGprqs_4anQLzZFkLdn-WWR-tyH-d7v-dQ' },
-    { title: 'Upper Body Blast', category: 'HIIT • Power Hour', duration: '08:15', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBwJ-dH-h6kz6aBTdqg5C6dxQuhPt2MwFksLEPdO96k8u3qIDzJRYQszPMP0Wh-vNgkOYNZ2sVfPVelKePAauu4zKTwM7aXcrVMteK5aM9ONEPqYFYtvdsX2qWE1DpyurGKjOkjokxMdpwoiIIA6n6kgaBOXijwJlqWVhZYJrE7eHoeC2KHU0FWm1carVyZDNM7csmcX0SGCHMUxCqGUzFLAGtH3dytqkvHzAhBEwARFvGOKO4g88qEsEKL7VN8A3-PXTbXoBFueEI' },
-    { title: 'Endurance Foundation', category: 'Cardio • Long Run', duration: '15:50', image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBJ8rSCByUb9Aj97ROoQHP6Sxe9RjNqmfGrKGPla12QM6S1mdrQi8cKEpD4E1Pi1KD9nFjwloRzmArn3nn0eKTlBeqcBfriWFeWs_9kpqR_8koA1pYuo12X2Gd1jhBjFyIjTWJP-JULCzysWZNefBY_61KCdUEI1xlsi0a4qNsoGua75R_9ut2PpIA-CQ-9mIaHkNQPjqCmVMlJ_NdhLC-TkHQK9ZIUNLK1WGH6oPSUNlILxCvy2WW6X8SMAfPf-M48RS4I-0-i9Ec' },
-  ];
+  // Member check-ins
+  const memberCheckIns = useMemo(() => {
+    return checkIns.filter(c => c.memberId === currentMember.id || c.memberName === currentMember.name);
+  }, [checkIns, currentMember]);
+
+  const todayStr = today.toDateString();
+  const isCheckedInToday = memberCheckIns.some(c => {
+    const d = new Date(c.checkedInAt);
+    return !isNaN(d.getTime()) && d.toDateString() === todayStr;
+  });
+
+  // Calculate Streak
+  const streakDays = useMemo(() => {
+    if (memberCheckIns.length === 0) return 0;
+    // Count consecutive past days
+    let streak = isCheckedInToday ? 1 : 0;
+    let checkDate = new Date();
+    if (!isCheckedInToday) {
+      checkDate.setDate(checkDate.getDate() - 1);
+    } else {
+      checkDate.setDate(checkDate.getDate() - 1);
+    }
+    while (true) {
+      const targetStr = checkDate.toDateString();
+      const hasRecord = memberCheckIns.some(c => new Date(c.checkedInAt).toDateString() === targetStr);
+      if (hasRecord) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return Math.max(streak, isCheckedInToday ? 1 : 0);
+  }, [memberCheckIns, isCheckedInToday]);
+
+  // Weekly Attendance Heatmap (Last 7 days Mon-Sun)
+  const weekDays = useMemo(() => {
+    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    const currentDayIdx = today.getDay() === 0 ? 6 : today.getDay() - 1; // 0 for Mon, 6 for Sun
+    return days.map((label, idx) => {
+      // Calculate date for this day of current week
+      const diff = idx - currentDayIdx;
+      const targetDate = new Date();
+      targetDate.setDate(today.getDate() + diff);
+      const isPastOrToday = idx <= currentDayIdx;
+      const targetDateStr = targetDate.toDateString();
+      const checked = memberCheckIns.some(c => new Date(c.checkedInAt).toDateString() === targetDateStr);
+      return {
+        label,
+        isToday: idx === currentDayIdx,
+        isPast: idx < currentDayIdx,
+        checked,
+      };
+    });
+  }, [memberCheckIns, today]);
+
+  // Weekly Progress Status
+  const isSunday = today.getDay() === 0;
+  const memberProgress = useMemo(() => {
+    return progressSubmissions.filter(p => p.memberId === currentMember.id || p.memberName === currentMember.name);
+  }, [progressSubmissions, currentMember]);
+
+  // Check if submitted this week
+  const hasSubmittedThisWeek = useMemo(() => {
+    if (memberProgress.length === 0) return false;
+    const latest = memberProgress[0];
+    const subDate = new Date(latest.submittedAt);
+    const diffDays = (today.getTime() - subDate.getTime()) / (1000 * 60 * 60 * 24);
+    return diffDays <= 7;
+  }, [memberProgress, today]);
+
+  // PT Elements
+  const memberWorkoutPlan = workoutPlans.find(p => p.memberId === currentMember.id) || workoutPlans[0];
+  const dayNames = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'] as const;
+  const currentDayOfWeek = dayNames[today.getDay()];
+  const todaysWorkout = memberWorkoutPlan?.days.find(d => d.dayOfWeek === currentDayOfWeek);
+
+  const memberDietPlan = dietPlans.find(p => p.memberId === currentMember.id) || dietPlans[0];
+  const latestRemark = remarks.find(r => r.memberId === currentMember.id) || remarks[0];
+
+  // Quick 1-click Check In Handler right from dashboard
+  const handleQuickCheckIn = () => {
+    if (isCheckedInToday) return;
+    setCheckingIn(true);
+    setCheckInMsg('');
+
+    setTimeout(() => {
+      const newRecord = {
+        id: `ci-${Date.now()}`,
+        memberId: currentMember.id,
+        memberName: currentMember.name,
+        latitude: adminSettings?.gymLat || 17.405433,
+        longitude: adminSettings?.gymLng || 78.569921,
+        checkedInAt: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
+      };
+      addCheckIn(newRecord);
+      setCheckingIn(false);
+      setCheckInMsg('Successfully checked in at FitZone Gym! Streak updated 🔥');
+      setTimeout(() => setCheckInMsg(''), 4000);
+    }, 1000);
+  };
 
   return (
-    <div className="bg-[#f8f9fb] text-[#191C1E] font-body antialiased">
-      {/* PT MEMBER DESIGN */}
-      {isPT ? (
-        <>
-          {/* Membership Status Card */}
-          <section className="mb-8">
-            <div className="bg-white p-6 rounded-xl flex items-center justify-between" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 bg-gradient-to-br from-[#002645] to-[#1A3C5E] rounded-xl flex items-center justify-center text-white">
-                  <span className="material-symbols-outlined text-3xl">verified_user</span>
-                </div>
-                <div>
-                  <div className="flex items-center gap-3 mb-1">
-                    <h2 className="text-2xl font-black text-[#1A3C5E] tracking-tight">{planType}</h2>
-                    <span className="px-3 py-1 bg-[#ffdbc8] text-[#321300] text-[10px] font-bold uppercase tracking-widest rounded-full">Pro Plan</span>
-                  </div>
-                  <p className="text-[#43474E] text-sm font-medium">Valid from {validFrom} — {validUntil}</p>
-                </div>
-              </div>
-              <div className="text-right">
-                <div className="flex items-center gap-2 justify-end mb-1">
-                  <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                  <p className="text-emerald-600 font-bold text-lg">{daysRemaining} days remaining</p>
-                </div>
-                <p className="text-[#43474E] text-xs">Auto-renews on next billing cycle</p>
-              </div>
-            </div>
-          </section>
+    <div className="space-y-8">
+      {/* 1. Header & Greeting Card */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-orange-100 text-[#E87722]">
+              <span className="material-symbols-outlined text-sm">stars</span>
+              {planLabel}
+            </span>
+            <span className="text-xs text-slate-400 font-medium">• FitZone Gym Member</span>
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-black text-[#1A3C5E] tracking-tight">
+            Welcome back, {currentMember.name.split(' ')[0]}! 👋
+          </h1>
+          <p className="text-slate-500 text-sm mt-1">
+            Consistency builds results. Here is your training status for today.
+          </p>
+        </div>
 
-          {/* Two Column Grid */}
-          <div className="grid grid-cols-12 gap-8 mb-8">
-            {/* Left Column: Check-In Hub */}
-            <div className="col-span-12 lg:col-span-5">
-              <div className="bg-white p-8 rounded-xl h-full flex flex-col justify-between" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-                <div>
-                  <div className="flex justify-between items-start mb-6">
-                    <h3 className="text-xl font-bold text-[#1A3C5E]">Check-In Hub</h3>
-                    <div className="flex items-center gap-1 text-[#E87722]">
-                      <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                      <span className="text-xl font-black">{streakDays}</span>
-                    </div>
-                  </div>
-                  <div className="bg-[#F2F4F6] rounded-xl p-6 mb-8 text-center">
-                    <p className="text-sm font-medium text-[#43474E] mb-2">Last Check-in</p>
-                    <p className="text-[#1A3C5E] font-bold text-lg">Today, 08:45 AM</p>
-                  </div>
-                  <div className="flex justify-between mb-8">
-                    {weeklyData.map((data, i) => (
-                      <div key={i} className="flex flex-col items-center gap-2">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold ${data.isToday ? 'bg-[#E87722] text-white' : 'bg-[#002645] text-white'}`}>
-                          {data.day}
-                        </div>
-                        <span className={`text-[10px] font-bold ${data.isToday ? 'text-[#E87722]' : 'text-slate-400'}`}>{data.day}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <button className="w-full bg-gradient-to-br from-[#E87722] to-[#FF8C37] text-white py-5 rounded-2xl font-black text-lg shadow-xl shadow-orange-500/20 active:scale-95 transition-all">
-                  Check In Now
-                </button>
-              </div>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/checkin"
+            className="px-5 py-2.5 bg-[#1A3C5E] hover:bg-[#15324E] text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-base">location_on</span>
+            Geo Check-In
+          </Link>
+          <Link
+            to="/progress/submit"
+            className="px-5 py-2.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl font-bold text-xs flex items-center gap-2 transition-all shadow-sm"
+          >
+            <span className="material-symbols-outlined text-base">leaderboard</span>
+            Weekly Progress
+          </Link>
+        </div>
+      </div>
+
+      {/* Check In Success Toast */}
+      {checkInMsg && (
+        <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-sm font-semibold flex items-center gap-2 shadow-sm animate-fade-in">
+          <span className="material-symbols-outlined text-emerald-600">check_circle</span>
+          <span>{checkInMsg}</span>
+        </div>
+      )}
+
+      {/* 2. Primary KPI Row: Membership Card + Check-In Hub + Streak */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+        {/* Membership Status Card */}
+        <div className="col-span-12 lg:col-span-4 bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+          <div>
+            <div className="flex justify-between items-start mb-4">
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Membership Status</span>
+              <span className="material-symbols-outlined text-[#1A3C5E]">verified_user</span>
             </div>
 
-            {/* Right Column: Weekly Progress */}
-            <div className="col-span-12 lg:col-span-7">
-              <div className="bg-white p-8 rounded-xl h-full" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-                <div className="flex justify-between items-center mb-10">
-                  <div>
-                    <h3 className="text-xl font-bold text-[#1A3C5E]">Weekly Progress</h3>
-                    <p className="text-sm text-[#43474E] font-medium">Weight Loss Track</p>
-                  </div>
-                  <div className="bg-emerald-50 text-emerald-700 px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 border border-emerald-100">
-                    <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>task_alt</span>
-                    Submitted
-                  </div>
-                </div>
-                <div className="flex items-end gap-12">
-                  <div className="flex-1">
-                    <div className="flex items-baseline gap-2 mb-2">
-                      <span className="text-5xl font-black text-[#1A3C5E] tracking-tighter">3.2</span>
-                      <span className="text-2xl font-bold text-slate-400 tracking-tight">kg lost</span>
-                    </div>
-                    <p className="text-sm font-medium text-[#43474E]">Since last weigh-in (7 days ago)</p>
-                    <div className="mt-8 h-32 flex items-end gap-3">
-                      {[60, 65, 55, 50, 45, 35, 25].map((height, i) => (
-                        <div key={i} className={`flex-1 rounded-t-lg cursor-pointer group relative ${i === 6 ? 'bg-gradient-to-br from-[#002645] to-[#1A3C5E]' : 'bg-[#F2F4F6] hover:bg-[#1A3C5E] transition-colors'}`} style={{ height: `${height}%` }}>
-                          <div className={`absolute -top-8 left-1/2 -translate-x-1/2 text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity ${i === 6 ? 'bg-[#E87722] text-white' : 'bg-[#002645] text-white'}`}>
-                            {i === 6 ? '80.8kg' : `${84 - i * 0.5}kg`}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="w-48 space-y-4">
-                    <div className="p-4 bg-[#F2F4F6] rounded-xl">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Body Fat</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-black text-[#1A3C5E]">14.2%</span>
-                        <span className="text-xs text-emerald-500 font-bold">-0.8%</span>
-                      </div>
-                    </div>
-                    <div className="p-4 bg-[#F2F4F6] rounded-xl">
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Muscle Mass</p>
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg font-black text-[#1A3C5E]">38.5kg</span>
-                        <span className="text-xs text-[#E87722] font-bold">+0.2%</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+            <div className="flex items-baseline gap-2 mb-1">
+              <span className="text-2xl font-black text-[#1A3C5E]">{planLabel}</span>
+            </div>
+            <p className="text-xs text-slate-500 font-medium mb-4">
+              Valid until {new Date(currentMember.membershipEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </p>
+
+            <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/60 mb-4">
+              <div className="flex justify-between text-xs mb-1.5">
+                <span className="text-slate-500 font-medium">Days Remaining:</span>
+                <span className={`font-bold ${isExpiringSoon ? 'text-amber-600' : 'text-[#1E7A45]'}`}>
+                  {daysRemaining} Days
+                </span>
+              </div>
+              <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${isExpiringSoon ? 'bg-amber-500' : 'bg-[#1E7A45]'}`}
+                  style={{ width: `${Math.min(100, (daysRemaining / 30) * 100)}%` }}
+                />
               </div>
             </div>
           </div>
 
-          {/* Bottom Section: Today's Workout (PT Only) */}
-          <section>
-            <div className="bg-white p-8 rounded-xl" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-              <div className="flex flex-col lg:flex-row gap-12">
-                <div className="lg:w-1/3">
-                  <div className="flex items-center gap-4 mb-6">
-                    <img alt="Trainer Marcus" className="w-16 h-16 rounded-2xl object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAi4uTPlgN5xj287b-32obiBdFmL1tUrA-HfaUseM3Zt2UhVzikSXlyO6qb6TZK-W6uo-30GNidPxmQoSwGjRxdslCaIqcfq-F7NrFjW7qEzhnxlYuetHKm8iwa9wBA19QSigF9tB1gEfr3rr41w6uicHVEs6zWnFgUrhiBvBnITSow0oF7-GJHlfBCWKbDxAPYfSoX29Y4h5LC0PgsvYyBgY-5gfEgrVncnKR6vL-NPmA2OnflECN-gHnd9JoN35nAC0rXAaIuyTg" />
-                    <div>
-                      <h4 className="text-[#1A3C5E] font-bold">Coach Marcus</h4>
-                      <p className="text-xs text-[#43474E] font-medium">Head of Elite Training</p>
-                    </div>
-                  </div>
-                  <div className="bg-[#1A3C5E]/10 p-5 rounded-2xl relative">
-                    <span className="material-symbols-outlined absolute -top-3 -left-2 text-[#1A3C5E] bg-white rounded-full p-1 text-lg">format_quote</span>
-                    <p className="text-sm italic text-[#87a7ce] leading-relaxed">
-                      "Today we focus on hypertrophy. Slow controlled eccentrics on the flyes. Keep your rest under 60s for the burnout sets. Let's push."
-                    </p>
-                  </div>
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-center mb-6">
-                    <div>
-                      <h3 className="text-2xl font-black text-[#1A3C5E] tracking-tight">Today's Workout</h3>
-                      <p className="text-[#E87722] font-bold text-sm tracking-wide">Chest & Triceps Focus</p>
-                    </div>
-                    <button className="bg-[#e6e8ea] hover:bg-[#e0e3e5] px-6 py-3 rounded-xl text-[#1A3C5E] font-bold text-sm transition-colors flex items-center gap-2">
-                      <span className="material-symbols-outlined text-lg">play_circle</span>
-                      View Demo
-                    </button>
-                  </div>
-                  <div className="space-y-4">
-                    {exercises.map((ex) => (
-                      <div key={ex.num} className="flex items-center justify-between p-4 hover:bg-[#F2F4F6] rounded-xl transition-colors cursor-pointer group">
-                        <div className="flex items-center gap-5">
-                          <div className="w-12 h-12 bg-white rounded-lg flex items-center justify-center text-[#1A3C5E] font-black shadow-sm group-hover:shadow-md transition-shadow">{ex.num}</div>
-                          <div>
-                            <h5 className="font-bold text-[#1A3C5E]">{ex.name}</h5>
-                            <p className="text-xs text-[#43474E] font-medium">{ex.reps}</p>
-                          </div>
-                        </div>
-                        <span className="material-symbols-outlined text-slate-300 group-hover:text-[#1A3C5E] transition-colors">chevron_right</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
+            {isExpiringSoon ? (
+              <div className="flex items-center justify-between w-full">
+                <span className="text-xs font-bold text-amber-700">Expires in {daysRemaining} days!</span>
+                <Link
+                  to="/dashboard/membership"
+                  className="px-3.5 py-1.5 bg-[#E87722] text-white text-xs font-bold rounded-lg hover:bg-[#D06A1C] transition-all"
+                >
+                  Renew Now
+                </Link>
               </div>
-            </div>
-          </section>
-        </>
-      ) : (
-        /* NORMAL MEMBER DESIGN */
-        <>
-          {/* Greeting */}
-          <div className="mb-10">
-            <h2 className="text-3xl font-black text-[#1A3C5E] tracking-tight mb-1">Welcome back, {memberName.split(' ')[0]}</h2>
-            <p className="text-[#495f7f] font-medium">Your fitness sanctuary is ready for today's push.</p>
+            ) : (
+              <div className="flex items-center justify-between w-full">
+                <span className="text-xs font-semibold text-[#1E7A45] flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-[#1E7A45]"></span>
+                  Active Account
+                </span>
+                <Link to="/dashboard/membership" className="text-xs font-bold text-[#E87722] hover:underline">
+                  Manage Plan
+                </Link>
+              </div>
+            )}
           </div>
+        </div>
 
-          {/* Bento Grid */}
-          <div className="grid grid-cols-12 gap-8">
-            {/* Membership Card */}
-            <div className="col-span-12 lg:col-span-4 bg-[#F2F4F6] rounded-xl p-6 flex flex-col justify-between overflow-hidden relative group" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-              <div className="absolute -right-8 -top-8 w-32 h-32 bg-[#eceef0] rounded-full opacity-50 group-hover:scale-110 transition-transform duration-700"></div>
+        {/* Check-In Card with Daily Attendance Heatmap */}
+        <div className="col-span-12 lg:col-span-8 bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80 flex flex-col justify-between">
+          <div>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
               <div>
-                <div className="flex justify-between items-start mb-6 relative z-10">
-                  <span className="bg-[#e6e8ea] text-[#43474E] px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase">{planType}</span>
-                  <span className="material-symbols-outlined text-[#1A3C5E]">verified_user</span>
-                </div>
-                <p className="text-[#43474E] text-sm font-medium mb-1">Membership Status</p>
-                <h3 className="text-2xl font-black text-[#1A3C5E]">Active</h3>
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Daily Attendance</span>
+                <h3 className="text-xl font-black text-[#1A3C5E]">Geo-Verified Gym Check-In</h3>
               </div>
-              <div className="mt-10 border-t border-[#eceef0] pt-4">
-                <div className="flex justify-between text-xs font-semibold">
-                  <span className="text-[#495f7f]">Renews on {validUntil}</span>
-                  <Link to="/dashboard/membership" className="text-[#E87722] hover:underline">Manage</Link>
-                </div>
+
+              {/* Streak Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-orange-50 border border-orange-200 rounded-xl text-[#E87722]">
+                <span className="material-symbols-outlined text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+                <span className="text-sm font-black">{streakDays} Day Streak</span>
               </div>
             </div>
 
-            {/* Check-In Hub */}
-            <div className="col-span-12 lg:col-span-8 bg-[#1A3C5E] rounded-xl p-8 text-white flex items-center justify-between overflow-hidden relative">
-              <div className="absolute right-0 top-0 w-1/3 h-full opacity-10 pointer-events-none">
-                <svg className="w-full h-full fill-current" viewBox="0 0 100 100">
-                  <path d="M0 100 L100 0 L100 100 Z"></path>
-                </svg>
-              </div>
-              <div className="relative z-10 flex-1">
-                <h3 className="text-2xl font-bold mb-2">Ready to sweat?</h3>
-                <p className="text-[#87a7ce] mb-6 max-w-md">Your current streak is {streakDays} days. Check in now to maintain your momentum and unlock weekly rewards.</p>
-                <button className="bg-[#E87722] hover:bg-[#fa8530] text-white px-8 py-3 rounded-xl font-bold flex items-center gap-2 transition-transform active:scale-95">
-                  <span className="material-symbols-outlined">qr_code</span>
-                  Generate Access Code
-                </button>
-              </div>
-              <div className="hidden md:flex flex-col items-center bg-white/10 backdrop-blur-md p-6 rounded-xl border border-white/10">
-                <span className="text-4xl font-black mb-1">{String(streakDays).padStart(2, '0')}</span>
-                <span className="text-[10px] font-bold tracking-tighter uppercase text-[#87a7ce]">Day Streak</span>
-              </div>
-            </div>
-
-            {/* Weekly Metrics */}
-            <div className="col-span-12 lg:col-span-7 bg-white rounded-xl p-8" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-              <div className="flex justify-between items-end mb-8">
-                <div>
-                  <h3 className="text-xl font-black text-[#1A3C5E] mb-1">Weekly Metrics</h3>
-                  <p className="text-[#43474E] text-sm">Consistency is the bridge between goals and accomplishment.</p>
-                </div>
-                <button className="text-sm font-bold text-[#E87722] flex items-center gap-1 hover:opacity-80">
-                  <span className="material-symbols-outlined text-lg">add_circle</span>
-                  Update Weight
-                </button>
-              </div>
-              <div className="grid grid-cols-7 gap-4 mb-8">
-                {weekDaysChart.map((data, i) => (
-                  <div key={i} className="flex flex-col items-center gap-2">
-                    <div className="w-full bg-[#F2F4F6] rounded-t-lg h-24 relative overflow-hidden">
-                      <div className={`absolute bottom-0 w-full ${data.isActive ? 'bg-[#E87722]' : 'bg-[#1A3C5E]'}`} style={{ height: data.isActive ? '100%' : `${data.height * 4}%` }}></div>
-                    </div>
-                    <span className={`text-[10px] font-bold ${data.isActive ? 'text-[#1A3C5E]' : 'text-[#495f7f]'}`}>{data.day}</span>
+            {/* Weekly Days Bar */}
+            <div className="grid grid-cols-7 gap-2 mb-6">
+              {weekDays.map((day, idx) => (
+                <div key={idx} className="flex flex-col items-center gap-1.5">
+                  <div
+                    className={`w-full aspect-square max-w-[48px] rounded-xl flex items-center justify-center font-bold text-xs transition-all ${
+                      day.checked
+                        ? 'bg-[#E87722] text-white shadow-sm'
+                        : day.isToday
+                        ? 'border-2 border-[#1A3C5E] text-[#1A3C5E] bg-blue-50/40'
+                        : 'bg-slate-100 text-slate-400'
+                    }`}
+                  >
+                    {day.checked ? (
+                      <span className="material-symbols-outlined text-base">check</span>
+                    ) : (
+                      day.label.slice(0, 1)
+                    )}
                   </div>
-                ))}
-              </div>
-              <div className="flex items-center gap-4 bg-[#F2F4F6] p-4 rounded-xl">
-                <div className="p-3 bg-white rounded-lg">
-                  <span className="material-symbols-outlined text-[#1A3C5E]">monitor_weight</span>
-                </div>
-                <div>
-                  <p className="text-xs text-[#495f7f] font-bold">Current Weight</p>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-xl font-black text-[#1A3C5E]">184.5 lbs</span>
-                    <span className="text-xs text-green-600 font-bold flex items-center">-1.2 lb this week</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Submission History */}
-            <div className="col-span-12 lg:col-span-5 flex flex-col gap-6">
-              <div className="bg-white rounded-xl p-6 flex-1" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-                <h3 className="text-lg font-black text-[#1A3C5E] mb-4">Submission History</h3>
-                <div className="space-y-4">
-                  {activityHistory.map((activity, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 rounded-lg hover:bg-[#F8F9FB] transition-colors cursor-pointer group">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activity.type === 'strength' ? 'bg-[#ffdbc8] text-[#321300]' : activity.type === 'cardio' ? 'bg-[#c2d9fe] text-[#485e7e]' : 'bg-[#ffdbc8] text-[#321300]'}`}>
-                          <span className="material-symbols-outlined text-xl">{activity.icon}</span>
-                        </div>
-                        <div>
-                          <p className="text-sm font-bold text-[#1A3C5E]">{activity.title}</p>
-                          <p className="text-[10px] text-[#495f7f]">{activity.time}</p>
-                        </div>
-                      </div>
-                      <span className="material-symbols-outlined text-slate-300 group-hover:text-[#1A3C5E] transition-colors">chevron_right</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Video Library Preview */}
-          <div className="mt-8">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black text-[#1A3C5E]">Featured Workouts</h3>
-              <Link to="/videos" className="text-sm font-bold text-[#E87722] hover:underline">View Library</Link>
-            </div>
-            <div className="flex gap-6 overflow-x-auto pb-4">
-              {videoLibrary.map((video, i) => (
-                <div key={i} className="min-w-[300px] bg-white rounded-xl overflow-hidden transition-transform hover:-translate-y-1" style={{ boxShadow: '4px 4px 10px rgba(26, 60, 94, 0.08), -4px -4px 10px rgba(255, 255, 255, 0.8)' }}>
-                  <div className="h-40 relative">
-                    <img alt={video.title} className="w-full h-full object-cover" src={video.image} />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
-                      <div className="w-12 h-12 bg-white/30 backdrop-blur-md rounded-full flex items-center justify-center border border-white/40">
-                        <span className="material-symbols-outlined text-white text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>play_arrow</span>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] font-bold px-2 py-1 rounded">{video.duration}</div>
-                  </div>
-                  <div className="p-4">
-                    <h4 className="font-bold text-[#1A3C5E] mb-1">{video.title}</h4>
-                    <p className="text-xs text-[#495f7f] font-medium uppercase tracking-wider">{video.category}</p>
-                  </div>
+                  <span className={`text-[11px] font-semibold ${day.isToday ? 'text-[#1A3C5E] font-bold' : 'text-slate-400'}`}>
+                    {day.label}
+                  </span>
                 </div>
               ))}
             </div>
           </div>
-        </>
+
+          {/* Action Row */}
+          <div className="pt-4 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+            <p className="text-xs text-slate-500">
+              {isCheckedInToday
+                ? 'You have already checked in at FitZone Gym today!'
+                : 'Within 100m of the gym? Click to log your attendance.'}
+            </p>
+
+            <div className="w-full sm:w-auto flex items-center gap-2">
+              {isCheckedInToday ? (
+                <button
+                  disabled
+                  className="w-full sm:w-auto px-6 py-2.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold flex items-center justify-center gap-2 cursor-default"
+                >
+                  <span className="material-symbols-outlined text-base">task_alt</span>
+                  Checked In Today
+                </button>
+              ) : (
+                <button
+                  onClick={handleQuickCheckIn}
+                  disabled={checkingIn}
+                  className="w-full sm:w-auto px-6 py-2.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-2 shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                >
+                  {checkingIn ? (
+                    <span>Verifying GPS...</span>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-base">check_circle</span>
+                      Check In Now
+                    </>
+                  )}
+                </button>
+              )}
+              <Link
+                to="/attendance"
+                className="px-4 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-colors"
+              >
+                History
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 3. Weekly Progress Card */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-blue-50 text-[#1A3C5E] flex items-center justify-center flex-shrink-0">
+              <span className="material-symbols-outlined text-2xl">fitness_center</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-lg font-black text-[#1A3C5E]">Weekly Progress Check-In</h3>
+                {hasSubmittedThisWeek ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">done</span> Submitted
+                  </span>
+                ) : isSunday ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-orange-100 text-[#E87722] animate-pulse">
+                    Submission Due Today
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-slate-100 text-slate-600">
+                    Next Window Sunday
+                  </span>
+                )}
+              </div>
+              <p className="text-slate-500 text-xs sm:text-sm mt-1">
+                {hasSubmittedThisWeek
+                  ? `Your latest progress log was received on ${new Date(memberProgress[0]?.submittedAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}.`
+                  : 'Submit your weight and progress photos on Sundays for trainer review.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              to="/progress/history"
+              className="px-4 py-2.5 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold transition-colors"
+            >
+              View Progress
+            </Link>
+            <Link
+              to="/progress/submit"
+              className="px-5 py-2.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-sm transition-all active:scale-95"
+            >
+              <span>{hasSubmittedThisWeek ? 'Update Log' : 'Submit Progress'}</span>
+              <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* 4. PT EXCLUSIVE SECTION (PRD Screen 3: 3 Orange-Bordered Cards) */}
+      {isPT ? (
+        <div className="space-y-4">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-[#E87722]"></span>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-[#1A3C5E]">Personal Training Workflows</h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Card 1: My Workout Plan */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-[#E87722]/50 hover:border-[#E87722] transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#E87722] bg-orange-50 px-2.5 py-0.5 rounded-full">
+                    Workout Plan
+                  </span>
+                  <span className="material-symbols-outlined text-[#E87722]">fitness_center</span>
+                </div>
+                <h3 className="text-xl font-bold text-[#1A3C5E] mb-1">Today's Routine</h3>
+                <p className="text-xs text-slate-500 mb-4">
+                  {todaysWorkout?.isRestDay
+                    ? 'Rest & Active Recovery'
+                    : `${todaysWorkout?.exercises.length || 4} Exercises scheduled for today`}
+                </p>
+
+                <div className="space-y-2 mb-6">
+                  {(todaysWorkout?.exercises.slice(0, 3) || [
+                    { name: 'Barbell Bench Press', sets: 4, reps: 10 },
+                    { name: 'Incline Dumbbell Press', sets: 3, reps: 12 },
+                    { name: 'Triceps Rope Pushdowns', sets: 4, reps: 15 },
+                  ]).map((ex, i) => (
+                    <div key={i} className="flex justify-between items-center text-xs p-2 rounded-lg bg-slate-50">
+                      <span className="font-semibold text-slate-800 truncate pr-2">{ex.name}</span>
+                      <span className="text-slate-400 font-medium flex-shrink-0">{ex.sets} × {ex.reps}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Link
+                to="/plan/workout"
+                className="w-full py-2.5 bg-[#1A3C5E] hover:bg-[#15324E] text-white rounded-xl text-xs font-bold text-center block transition-colors"
+              >
+                View Full Workout Plan
+              </Link>
+            </div>
+
+            {/* Card 2: My Diet Plan */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-[#E87722]/50 hover:border-[#E87722] transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#E87722] bg-orange-50 px-2.5 py-0.5 rounded-full">
+                    Nutrition Plan
+                  </span>
+                  <span className="material-symbols-outlined text-[#E87722]">restaurant</span>
+                </div>
+                <h3 className="text-xl font-bold text-[#1A3C5E] mb-1">Target Nutrition</h3>
+                <p className="text-xs text-slate-500 mb-4">
+                  {memberDietPlan?.meals.length || 5} Meals tailored to your metabolic goal
+                </p>
+
+                <div className="grid grid-cols-3 gap-2 text-center mb-6">
+                  <div className="p-2.5 bg-blue-50/60 rounded-xl">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Protein</p>
+                    <p className="text-sm font-black text-[#1A3C5E]">160g</p>
+                  </div>
+                  <div className="p-2.5 bg-orange-50/60 rounded-xl">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Carbs</p>
+                    <p className="text-sm font-black text-[#E87722]">210g</p>
+                  </div>
+                  <div className="p-2.5 bg-amber-50/60 rounded-xl">
+                    <p className="text-[10px] uppercase font-bold text-slate-400">Fats</p>
+                    <p className="text-sm font-black text-amber-700">60g</p>
+                  </div>
+                </div>
+              </div>
+
+              <Link
+                to="/plan/diet"
+                className="w-full py-2.5 bg-[#1A3C5E] hover:bg-[#15324E] text-white rounded-xl text-xs font-bold text-center block transition-colors"
+              >
+                View Nutrition & Meals
+              </Link>
+            </div>
+
+            {/* Card 3: Trainer Remarks */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm border-2 border-[#E87722]/50 hover:border-[#E87722] transition-all flex flex-col justify-between">
+              <div>
+                <div className="flex justify-between items-start mb-3">
+                  <span className="text-[11px] font-bold uppercase tracking-wider text-[#E87722] bg-orange-50 px-2.5 py-0.5 rounded-full">
+                    Coach Directives
+                  </span>
+                  <span className="material-symbols-outlined text-[#E87722]">chat</span>
+                </div>
+                <h3 className="text-xl font-bold text-[#1A3C5E] mb-1">Trainer Feedback</h3>
+                <p className="text-xs text-slate-500 mb-3">
+                  From Coach Ravi Sharma • Head Trainer
+                </p>
+
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200/80 text-xs italic text-slate-700 leading-relaxed mb-6">
+                  "{latestRemark?.content || 'Focus on controlled eccentrics on all compounds this week. Keep that protein intake consistent.'}"
+                </div>
+              </div>
+
+              <Link
+                to="/remarks"
+                className="w-full py-2.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl text-xs font-bold text-center block transition-colors"
+              >
+                View All Trainer Remarks
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Normal Plan Upgrade Banner */
+        <div className="bg-gradient-to-r from-[#1A3C5E] to-[#15324E] rounded-2xl p-6 sm:p-8 text-white shadow-sm flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div>
+            <span className="px-3 py-1 bg-white/10 text-orange-300 text-xs font-bold rounded-full uppercase tracking-wider">
+              Upgrade Available
+            </span>
+            <h3 className="text-xl font-black mt-2">Unlock Personal Training</h3>
+            <p className="text-white/70 text-xs sm:text-sm max-w-lg mt-1">
+              Get custom day-by-day workout plans, calculated nutrition targets, and direct feedback notes from Coach Ravi Sharma.
+            </p>
+          </div>
+          <Link
+            to="/register/plan-select"
+            className="px-6 py-3 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl font-bold text-xs uppercase tracking-wider flex-shrink-0 transition-all shadow-md active:scale-95"
+          >
+            Upgrade for ₹3,500/mo
+          </Link>
+        </div>
       )}
+
+      {/* 5. Featured Video Library Section */}
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-black text-[#1A3C5E]">Workout Video Library</h3>
+            <p className="text-xs text-slate-500">Master proper form and exercise mechanics</p>
+          </div>
+          <Link to="/videos" className="text-xs font-bold text-[#E87722] hover:underline flex items-center gap-1">
+            View All Videos
+            <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {(videos.slice(0, 4) || []).map((video) => (
+            <Link
+              key={video.id}
+              to={`/videos/${video.categorySlug || 'general'}/${video.id}`}
+              className="bg-white rounded-xl overflow-hidden shadow-sm border border-slate-200/80 hover:shadow-md transition-all group flex flex-col"
+            >
+              <div className="aspect-video relative overflow-hidden bg-slate-900">
+                <img
+                  src={video.thumbnailUrl}
+                  alt={video.title}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 opacity-90"
+                />
+                <div className="absolute inset-0 bg-black/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="w-10 h-10 rounded-full bg-white/90 flex items-center justify-center text-[#1A3C5E] shadow-md">
+                    <span className="material-symbols-outlined text-2xl font-bold">play_arrow</span>
+                  </div>
+                </div>
+                <span className="absolute bottom-2 right-2 bg-black/70 text-white text-[10px] font-bold px-2 py-0.5 rounded">
+                  {video.duration}
+                </span>
+                <span className="absolute top-2 left-2 bg-[#E87722] text-white text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded">
+                  {video.category}
+                </span>
+              </div>
+              <div className="p-3.5 flex-1 flex flex-col justify-between">
+                <h4 className="text-xs font-bold text-[#1A3C5E] line-clamp-2 mb-1 group-hover:text-[#E87722] transition-colors">
+                  {video.title}
+                </h4>
+                <p className="text-[11px] text-slate-400 capitalize">{video.difficulty} level</p>
+              </div>
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

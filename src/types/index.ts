@@ -197,5 +197,6 @@ export interface AuthState {
   login: (email: string, password: string) => void;
   loginAsUser: (user: User) => void;
   loginAsAdmin: (admin: Admin) => void;
+  updateUser: (updates: Partial<User>) => void;
   logout: () => void;
 }

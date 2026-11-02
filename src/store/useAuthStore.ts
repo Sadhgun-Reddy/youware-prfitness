@@ -12,11 +12,11 @@ export const useAuthStore = create<AuthState>()(
       token: undefined,
 
       login: (email: string, _password: string) => {
-        // Mock login - will be replaced with API call
+        // Mock login
         set({
           isAuthenticated: true,
           user: {
-            id: '1',
+            id: 'm1',
             name: 'Arjun Mehta',
             email,
             dob: '1995-06-15',
@@ -44,6 +44,12 @@ export const useAuthStore = create<AuthState>()(
 
       loginAsAdmin: (admin: Admin) => {
         set({ isAuthenticated: true, admin, role: 'admin', user: null, token: `mock-token-admin-${Date.now()}` });
+      },
+
+      updateUser: (updates: Partial<User>) => {
+        set((state) => ({
+          user: state.user ? { ...state.user, ...updates } : null,
+        }));
       },
 
       logout: () => {

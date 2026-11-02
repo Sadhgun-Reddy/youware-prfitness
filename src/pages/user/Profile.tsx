@@ -2,201 +2,180 @@ import { Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 
 export default function Profile() {
-  const { user } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
-  const profile = {
-    name: 'Alex Sterling',
-    email: 'a.sterling@fitsyncpro.com',
-    phone: '+1 (555) 234-8901',
-    homeStudio: 'Kinetic Sanctuary - Downtown',
-    address: '782 Sapphire Heights, Apt 4C, San Francisco, CA',
-    memberSince: 'Jan 2023',
-    streak: '14 Day Streak',
-    level: 'Pro Level',
-    height: 184,
-    weight: 82.5,
-    restingHR: 54,
-    bodyFat: 11.4,
-    membership: 'ULTIMATE ELITE',
-    billingCycle: 'Annual (Renews Oct 2024)',
-    memberId: '#FSP-8829-X',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDALsMXT4pXj6wHOgLNRsoG5Zrz1saLCRZIOr3s24sNwmxPvjMD1G25eZrW5TlxqdvZUA_xUEbnB4Ja3Kk-zzTAxOuZFpz-w1Wy5DPKJgt4fC1fa2xwgZFk7r3qhrXq6eXO77kSqG_pJ3Vx3ul1gy_YDYjTuKWnlLsQ2k5EYrELFZVv0Cm05wjCBHCi0mKhl_tafMuhEKAyYpbRTTz1EaxsaKm54GiN-Wc7u3k5c4jgcFdaY6vstlC36Ex1ME9RPunDVfp8IwUx9Ig',
+  const member = user || {
+    id: 'm1',
+    name: 'Arjun Mehta',
+    email: 'arjun@example.com',
+    phone: '+91 98765 43210',
+    dob: '1995-06-15',
+    gender: 'male',
+    height: 175,
+    weight: 72,
+    fitnessGoal: 'muscle_gain',
+    gymName: 'FitZone Gym',
+    gymLocation: 'Andheri West, Mumbai',
+    healthConditions: 'None',
+    planType: 'personal_training' as const,
+    membershipStartDate: '2025-01-15',
+    membershipEndDate: '2025-02-15',
+    status: 'active' as const,
+    createdAt: '2025-01-15',
   };
 
+  const isPT = member.planType === 'personal_training';
+  const planLabel = isPT ? 'Personal Training' : 'Normal Membership';
+
   return (
-    <div>
-      <header className="flex justify-between items-end mb-10">
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-black tracking-tight text-[#1A3C5E]">My Profile</h2>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#E87722]">person</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Account & Profile</span>
+          </div>
+          <h1 className="text-3xl font-black text-[#1A3C5E] tracking-tight">Member Profile</h1>
+          <p className="text-xs text-slate-500 mt-1">Personal and biometric fitness records</p>
         </div>
-        <div className="flex items-center gap-6">
-          <button className="bg-[#E87722] text-white px-6 py-2 rounded-xl font-bold flex items-center gap-2 shadow-[0_4px_12px_rgba(232,119,34,0.3)] active:scale-95 transition-all">
-            <span className="material-symbols-outlined text-sm">edit</span>
+
+        <div className="flex items-center gap-2">
+          <Link
+            to="/profile/edit"
+            className="px-5 py-2.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all active:scale-95"
+          >
+            <span className="material-symbols-outlined text-base">edit</span>
             Edit Profile
+          </Link>
+          <button
+            onClick={logout}
+            className="px-4 py-2.5 border border-red-200 text-red-600 hover:bg-red-50 rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+          >
+            <span className="material-symbols-outlined text-base">logout</span>
+            Log Out
           </button>
         </div>
-      </header>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-7 flex flex-col gap-8">
-          <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(26,60,94,0.05)] border border-white/40">
-            <div className="flex flex-col md:flex-row items-center gap-8">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-[#FFDBC8] p-1">
-                  <img alt="User Avatar" className="w-full h-full object-cover rounded-full" src={profile.avatar} />
-                </div>
-                <div className="absolute bottom-1 right-1 bg-[#E87722] text-white p-1.5 rounded-full shadow-lg">
-                  <span className="material-symbols-outlined text-base" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                </div>
-              </div>
-              <div className="flex-1 text-center md:text-left">
-                <h3 className="text-3xl font-black text-[#1A3C5E] mb-1">{profile.name}</h3>
-                <p className="text-on-surface-variant font-medium mb-4 uppercase tracking-widest text-xs">Elite Member since {profile.memberSince}</p>
-                <div className="flex flex-wrap justify-center md:justify-start gap-4">
-                  <div className="bg-surface-container-low px-4 py-2 rounded-xl flex items-center gap-2">
-                    <span className="material-symbols-outlined text-[#E87722]" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-                    <span className="font-bold text-[#1A3C5E]">{profile.streak}</span>
-                  </div>
-                  <div className="bg-surface-container-low px-4 py-2 rounded-xl flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary">military_tech</span>
-                    <span className="font-bold text-[#1A3C5E]">{profile.level}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(26,60,94,0.05)]">
-            <div className="flex items-center justify-between mb-8">
-              <h4 className="text-lg font-bold text-[#1A3C5E] flex items-center gap-2">
-                <span className="material-symbols-outlined text-[#E87722]">person_outline</span>
-                Personal Information
-              </h4>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-y-6 gap-x-8">
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Full Name</p>
-                <p className="text-primary font-semibold">{profile.name}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Email Address</p>
-                <p className="text-primary font-semibold">{profile.email}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Phone Number</p>
-                <p className="text-primary font-semibold">{profile.phone}</p>
-              </div>
-              <div className="space-y-1">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Home Studio</p>
-                <p className="text-primary font-semibold">{profile.homeStudio}</p>
-              </div>
-              <div className="space-y-1 md:col-span-2">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400">Residential Address</p>
-                <p className="text-primary font-semibold">{profile.address}</p>
-              </div>
-            </div>
-          </section>
+      {/* Main Profile Identity Card */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#1A3C5E] to-[#E87722] text-white flex items-center justify-center font-black text-3xl shadow-md flex-shrink-0">
+          {member.name.charAt(0)}
         </div>
 
-        <div className="lg:col-span-5 flex flex-col gap-8">
-          <section className="bg-primary-container text-white rounded-[2rem] p-8 relative overflow-hidden shadow-xl">
-            <div className="absolute -right-12 -top-12 w-48 h-48 bg-[#E87722] opacity-20 rounded-full blur-3xl"></div>
-            <div className="absolute -left-12 -bottom-12 w-32 h-32 bg-white opacity-10 rounded-full blur-2xl"></div>
-            <div className="relative z-10">
-              <div className="flex justify-between items-start mb-12">
-                <div>
-                  <p className="text-[#87A7CE] text-[10px] font-bold uppercase tracking-[0.2em] mb-1">Current Membership</p>
-                  <h4 className="text-2xl font-black">{profile.membership}</h4>
-                </div>
-                <span className="material-symbols-outlined text-4xl text-[#E87722]" style={{ fontVariationSettings: "'FILL' 1" }}>bolt</span>
-              </div>
-              <div className="space-y-4">
-                <div className="flex justify-between items-center text-sm border-b border-white/10 pb-2">
-                  <span className="text-[#87A7CE]">Billing Cycle</span>
-                  <span className="font-bold">{profile.billingCycle}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-[#87A7CE]">Member ID</span>
-                  <span className="font-mono tracking-wider">{profile.memberId}</span>
-                </div>
-              </div>
-              <button className="mt-8 w-full py-3 bg-white text-primary font-bold rounded-xl text-sm hover:bg-slate-100 transition-colors">
-                Manage Subscription
-              </button>
-            </div>
-          </section>
+        <div className="flex-1 text-center sm:text-left space-y-1">
+          <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 mb-1">
+            <h2 className="text-2xl font-black text-[#1A3C5E]">{member.name}</h2>
+            <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+              isPT ? 'bg-orange-100 text-[#E87722]' : 'bg-slate-100 text-slate-700'
+            }`}>
+              {planLabel}
+            </span>
+            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800">
+              Active Status
+            </span>
+          </div>
 
-          <section className="bg-surface-container-lowest rounded-[2rem] p-8 shadow-[0_8px_30px_rgba(26,60,94,0.05)]">
-            <h4 className="text-lg font-bold text-[#1A3C5E] mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-[#E87722]">monitor_heart</span>
-              Health Overview
-            </h4>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-surface-container-low p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400 mb-1">Height</p>
-                <p className="text-xl font-black text-primary">{profile.height}<span className="text-xs font-normal ml-1">cm</span></p>
-              </div>
-              <div className="bg-surface-container-low p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400 mb-1">Weight</p>
-                <p className="text-xl font-black text-primary">{profile.weight}<span className="text-xs font-normal ml-1">kg</span></p>
-              </div>
-              <div className="bg-surface-container-low p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400 mb-1">Resting HR</p>
-                <p className="text-xl font-black text-primary">{profile.restingHR}<span className="text-xs font-normal ml-1">bpm</span></p>
-              </div>
-              <div className="bg-surface-container-low p-4 rounded-2xl flex flex-col items-center justify-center text-center">
-                <p className="text-[10px] font-bold uppercase tracking-tighter text-slate-400 mb-1">Body Fat</p>
-                <p className="text-xl font-black text-[#E87722]">{profile.bodyFat}<span className="text-xs font-normal ml-1">%</span></p>
-              </div>
+          <p className="text-xs text-slate-500 font-medium">
+            Member ID: <span className="font-mono text-slate-700">{member.id}</span> • Member at <span className="font-semibold text-slate-800">{member.gymName}</span>
+          </p>
+
+          <p className="text-xs text-slate-400">
+            Enrolled since {new Date(member.createdAt || member.membershipStartDate).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+      </div>
+
+      {/* Profile Details Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Personal & Contact Details */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <span className="material-symbols-outlined text-[#1A3C5E] text-xl">contact_mail</span>
+            <h3 className="text-base font-bold text-[#1A3C5E]">Personal & Contact Details</h3>
+          </div>
+
+          <div className="space-y-3 text-xs">
+            <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <span className="text-slate-400 font-medium">Email Address:</span>
+              <span className="font-bold text-slate-800">{member.email}</span>
             </div>
-            <div className="mt-6 pt-6 border-t border-surface-container flex items-center justify-between">
-              <p className="text-xs text-on-surface-variant italic">Last updated: Today, 08:30 AM</p>
-              <button className="text-primary text-xs font-bold hover:underline">Full Analytics</button>
+            <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <span className="text-slate-400 font-medium">Phone Number:</span>
+              <span className="font-bold text-slate-800">{member.phone || '+91 98765 43210'}</span>
             </div>
-          </section>
+            <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <span className="text-slate-400 font-medium">Date of Birth:</span>
+              <span className="font-bold text-slate-800">
+                {new Date(member.dob).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+              </span>
+            </div>
+            <div className="flex justify-between py-1.5">
+              <span className="text-slate-400 font-medium">Gender:</span>
+              <span className="font-bold text-slate-800 capitalize">{member.gender}</span>
+            </div>
+          </div>
         </div>
 
-        <div className="lg:col-span-12 mt-4">
-          <section className="bg-surface-container-low/50 rounded-[2rem] p-8 border border-white">
-            <h4 className="text-lg font-bold text-[#1A3C5E] mb-6">Account Settings</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <button className="bg-white p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all group">
-                <div className="w-10 h-10 bg-blue-50 rounded-full flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                  <span className="material-symbols-outlined">lock</span>
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-[#1A3C5E]">Privacy & Security</p>
-                  <p className="text-[10px] text-slate-500">MFA, Password & Data</p>
-                </div>
-              </button>
-              <button className="bg-white p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all group">
-                <div className="w-10 h-10 bg-orange-50 rounded-full flex items-center justify-center text-[#E87722] group-hover:bg-[#E87722] group-hover:text-white transition-colors">
-                  <span className="material-symbols-outlined">notifications_active</span>
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-[#1A3C5E]">Notifications</p>
-                  <p className="text-[10px] text-slate-500">Alerts & Reminders</p>
-                </div>
-              </button>
-              <button className="bg-white p-4 rounded-2xl flex items-center gap-4 hover:shadow-md transition-all group">
-                <div className="w-10 h-10 bg-slate-100 rounded-full flex items-center justify-center text-slate-600 group-hover:bg-slate-600 group-hover:text-white transition-colors">
-                  <span className="material-symbols-outlined">sync</span>
-                </div>
-                <div className="text-left">
-                  <p className="font-bold text-sm text-[#1A3C5E]">App Integrations</p>
-                  <p className="text-[10px] text-slate-500">Apple Health, Strava</p>
-                </div>
-              </button>
-            </div>
-          </section>
+        {/* Physical & Health Profile */}
+        <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+          <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
+            <span className="material-symbols-outlined text-[#E87722] text-xl">monitor_weight</span>
+            <h3 className="text-base font-bold text-[#1A3C5E]">Physical & Health Profile</h3>
+          </div>
 
-          <div className="mt-8 px-4 flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex gap-6">
-              <a className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors" href="#">Terms of Service</a>
-              <a className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors" href="#">Privacy Policy</a>
-              <a className="text-[10px] font-bold uppercase tracking-widest text-slate-400 hover:text-primary transition-colors" href="#">Cookie Policy</a>
+          <div className="space-y-3 text-xs">
+            <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <span className="text-slate-400 font-medium">Height:</span>
+              <span className="font-bold text-slate-800">{member.height} cm</span>
             </div>
-            <p className="text-[10px] text-slate-400">© 2024 FitSync Pro. All Rights Reserved. Member Version 4.2.1-Gold</p>
+            <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <span className="text-slate-400 font-medium">Current Weight:</span>
+              <span className="font-bold text-slate-800">{member.weight} kg</span>
+            </div>
+            <div className="flex justify-between py-1.5 border-b border-slate-50">
+              <span className="text-slate-400 font-medium">Fitness Goal:</span>
+              <span className="font-bold text-[#E87722] uppercase tracking-wider">
+                {member.fitnessGoal.replace('_', ' ')}
+              </span>
+            </div>
+            <div className="flex justify-between py-1.5">
+              <span className="text-slate-400 font-medium">Medical / Health Conditions:</span>
+              <span className="font-bold text-slate-800">{member.healthConditions || 'None reported'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Membership & Subscription Card */}
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+          <div className="flex items-center gap-2">
+            <span className="material-symbols-outlined text-[#1A3C5E] text-xl">card_membership</span>
+            <h3 className="text-base font-bold text-[#1A3C5E]">Membership Details</h3>
+          </div>
+          <Link to="/dashboard/membership" className="text-xs font-bold text-[#E87722] hover:underline">
+            Manage Subscription
+          </Link>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+          <div className="p-3.5 bg-slate-50 rounded-xl">
+            <span className="text-slate-400 block mb-1">Plan Tier</span>
+            <span className="font-bold text-[#1A3C5E] text-sm">{planLabel}</span>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl">
+            <span className="text-slate-400 block mb-1">Effective Start</span>
+            <span className="font-bold text-slate-800 text-sm">
+              {new Date(member.membershipStartDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
+          </div>
+          <div className="p-3.5 bg-slate-50 rounded-xl">
+            <span className="text-slate-400 block mb-1">Expiry Date</span>
+            <span className="font-bold text-slate-800 text-sm">
+              {new Date(member.membershipEndDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+            </span>
           </div>
         </div>
       </div>

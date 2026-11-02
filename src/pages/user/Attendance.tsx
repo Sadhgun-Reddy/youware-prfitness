@@ -1,232 +1,350 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
+import { Link } from 'react-router-dom';
 
-const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 export default function Attendance() {
-  const [currentMonth] = useState(5);
-  const [currentYear] = useState(2025);
-  const currentStreak = 7;
-  const bestStreak = 15;
+  const { user } = useAuthStore();
+  const { checkIns } = useDataStore();
 
-  const calendarDays = [
-    { day: 26, isCurrentMonth: false },
-    { day: 27, isCurrentMonth: false },
-    { day: 28, isCurrentMonth: false },
-    { day: 29, isCurrentMonth: false },
-    { day: 30, isCurrentMonth: false },
-    { day: 31, isCurrentMonth: false },
-    { day: 1, isCurrentMonth: true, checkedIn: true },
-    { day: 2, isCurrentMonth: true, checkedIn: true },
-    { day: 3, isCurrentMonth: true, checkedIn: true },
-    { day: 4, isCurrentMonth: true, checkedIn: true },
-    { day: 5, isCurrentMonth: true },
-    { day: 6, isCurrentMonth: true, checkedIn: true },
-    { day: 7, isCurrentMonth: true, checkedIn: true },
-    { day: 8, isCurrentMonth: true, checkedIn: true },
-    { day: 9, isCurrentMonth: true, checkedIn: true },
-    { day: 10, isCurrentMonth: true, checkedIn: true },
-    { day: 11, isCurrentMonth: true, checkedIn: true, isToday: true },
-    { day: 12, isCurrentMonth: true },
-    { day: 13, isCurrentMonth: true },
-    { day: 14, isCurrentMonth: true },
-    { day: 15, isCurrentMonth: true },
-    { day: 16, isCurrentMonth: true },
-    { day: 17, isCurrentMonth: true },
-    { day: 18, isCurrentMonth: true },
-    { day: 19, isCurrentMonth: true },
-    { day: 20, isCurrentMonth: true },
-    { day: 21, isCurrentMonth: true },
-    { day: 22, isCurrentMonth: true },
-    { day: 23, isCurrentMonth: true },
-    { day: 24, isCurrentMonth: true },
-    { day: 25, isCurrentMonth: true },
-    { day: 26, isCurrentMonth: true },
-    { day: 27, isCurrentMonth: true },
-    { day: 28, isCurrentMonth: true },
-    { day: 29, isCurrentMonth: true },
-    { day: 30, isCurrentMonth: true },
-  ];
+  const currentMember = user || {
+    id: 'm1',
+    name: 'Arjun Mehta',
+  };
 
-  const weeklyData = [
-    { day: 'Mon', done: true },
-    { day: 'Tue', done: true },
-    { day: 'Wed', done: true },
-    { day: 'Thu', done: false },
-    { day: 'Fri', done: true },
-    { day: 'Sat', done: true },
-    { day: 'Sun', done: true },
-  ];
+  const [date, setDate] = useState(() => new Date());
+  const [selectedRecord, setSelectedRecord] = useState<{ dateStr: string; timestamp?: string } | null>(null);
 
-  const recentActivity = [
-    { title: 'Morning Flow', date: 'Jun 11, 2025', time: '06:45 AM', status: 'verified' },
-    { title: 'Strength Training', date: 'Jun 10, 2025', time: '05:30 PM', status: 'verified' },
-  ];
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-indexed
+
+  // Filter checkins for current member
+  const memberCheckIns = useMemo(() => {
+    return checkIns.filter(c => c.memberId === currentMember.id || c.memberName === currentMember.name);
+  }, [checkIns, currentMember]);
+
+  // Calendar math
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const firstDayOfWeek = new Date(year, month, 1).getDay(); // 0 is Sunday
+  const startOffset = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1; // Mon = 0, Sun = 6
+
+  // Generate calendar cells
+  const calendarDays = useMemo(() => {
+    const cells = [];
+    // Previous month padding
+    const prevMonthDays = new Date(year, month, 0).getDate();
+    for (let i = startOffset - 1; i >= 0; i--) {
+      cells.push({
+        dayNumber: prevMonthDays - i,
+        isCurrentMonth: false,
+        dateKey: `${year}-${String(month).padStart(2, '0')}-${String(prevMonthDays - i).padStart(2, '0')}`,
+        checkIn: null,
+      });
+    }
+
+    // Current month days
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+      const record = memberCheckIns.find(c => {
+        const cDate = new Date(c.checkedInAt);
+        return (
+          cDate.getFullYear() === year &&
+          cDate.getMonth() === month &&
+          cDate.getDate() === d
+        );
+      });
+
+      const isToday =
+        new Date().getFullYear() === year &&
+        new Date().getMonth() === month &&
+        new Date().getDate() === d;
+
+      cells.push({
+        dayNumber: d,
+        isCurrentMonth: true,
+        dateKey,
+        isToday,
+        checkIn: record || null,
+      });
+    }
+
+    // Next month padding to fill grid
+    const remaining = (7 - (cells.length % 7)) % 7;
+    for (let n = 1; n <= remaining; n++) {
+      cells.push({
+        dayNumber: n,
+        isCurrentMonth: false,
+        dateKey: `${year}-${String(month + 2).padStart(2, '0')}-${String(n).padStart(2, '0')}`,
+        checkIn: null,
+      });
+    }
+
+    return cells;
+  }, [year, month, daysInMonth, startOffset, memberCheckIns]);
+
+  // Weekly breakdown
+  const weeklyBreakdown = useMemo(() => {
+    const weeks: { weekNum: number; count: number; days: typeof calendarDays }[] = [];
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      const slice = calendarDays.slice(i, i + 7);
+      const count = slice.filter(c => c.isCurrentMonth && c.checkIn).length;
+      weeks.push({
+        weekNum: Math.floor(i / 7) + 1,
+        count,
+        days: slice,
+      });
+    }
+    return weeks;
+  }, [calendarDays]);
+
+  // Monthly stats
+  const monthlyCheckInCount = useMemo(() => {
+    return memberCheckIns.filter(c => {
+      const d = new Date(c.checkedInAt);
+      return d.getFullYear() === year && d.getMonth() === month;
+    }).length;
+  }, [memberCheckIns, year, month]);
+
+  const handlePrevMonth = () => {
+    setDate(new Date(year, month - 1, 1));
+    setSelectedRecord(null);
+  };
+
+  const handleNextMonth = () => {
+    setDate(new Date(year, month + 1, 1));
+    setSelectedRecord(null);
+  };
 
   return (
-    <div className="space-y-8">
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_8px_30px_rgb(26,60,94,0.04)] group transition-all hover:-translate-y-1">
-          <div className="flex justify-between items-start mb-4">
-            <span className="label-md font-bold text-on-surface-variant tracking-widest uppercase text-[10px]">Current Streak</span>
-            <div className="bg-tertiary-fixed text-tertiary p-2 rounded-lg">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
-            </div>
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#E87722] text-xl">calendar_month</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Attendance Log</span>
           </div>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-4xl font-extrabold text-[#E87722]">{currentStreak} Days</h3>
-          </div>
-          <p className="text-sm text-on-surface-variant/70 mt-2">Personal record is {bestStreak} days</p>
+          <h1 className="text-3xl font-black text-[#1A3C5E] tracking-tight">Attendance History</h1>
+          <p className="text-xs text-slate-500 mt-1">Every geo-verified visit timestamped and logged</p>
         </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_8px_30px_rgb(26,60,94,0.04)] transition-all hover:-translate-y-1">
-          <div className="flex justify-between items-start mb-4">
-            <span className="label-md font-bold text-on-surface-variant tracking-widest uppercase text-[10px]">Monthly Progress</span>
-            <div className="bg-primary-fixed text-primary p-2 rounded-lg">
-              <span className="material-symbols-outlined">analytics</span>
-            </div>
-          </div>
-          <h3 className="text-4xl font-extrabold text-[#1A3C5E]">14 / 20</h3>
-          <div className="w-full bg-surface-container-high h-2 rounded-full mt-4 overflow-hidden">
-            <div className="bg-[#1A3C5E] h-full w-[70%] rounded-full"></div>
-          </div>
-          <p className="text-sm text-on-surface-variant/70 mt-3">6 sessions left for gold badge</p>
-        </div>
+        <Link
+          to="/checkin"
+          className="px-5 py-2.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl text-xs font-bold flex items-center gap-2 shadow-sm transition-all self-start sm:self-auto active:scale-95"
+        >
+          <span className="material-symbols-outlined text-base">location_on</span>
+          Check In Today
+        </Link>
+      </div>
 
-        <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_8px_30px_rgb(26,60,94,0.04)] transition-all hover:-translate-y-1">
-          <div className="flex justify-between items-start mb-4">
-            <span className="label-md font-bold text-on-surface-variant tracking-widest uppercase text-[10px]">Best Streak</span>
-            <div className="bg-emerald-100 text-emerald-700 p-2 rounded-lg">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
-            </div>
+      {/* Stats Summary Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-orange-100 text-[#E87722] flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-2xl font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
           </div>
-          <h3 className="text-4xl font-extrabold text-emerald-600">{bestStreak} Days</h3>
-          <p className="text-sm text-on-surface-variant/70 mt-2">Achieved June 2024</p>
-        </div>
-      </section>
-
-      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 bg-surface-container-lowest p-8 rounded-xl shadow-[0_8px_40px_rgba(26,60,94,0.05)]">
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <h2 className="text-2xl font-bold text-[#1A3C5E]">{months[currentMonth]} {currentYear}</h2>
-              <p className="text-sm text-on-surface-variant">Overall consistency: 88%</p>
-            </div>
-            <div className="flex gap-2">
-              <button className="p-2 hover:bg-surface-container rounded-lg transition-colors">
-                <span className="material-symbols-outlined">chevron_left</span>
-              </button>
-              <button className="p-2 hover:bg-surface-container rounded-lg transition-colors">
-                <span className="material-symbols-outlined">chevron_right</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-7 gap-y-6 mb-8">
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Mon</div>
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Tue</div>
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Wed</div>
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Thu</div>
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Fri</div>
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Sat</div>
-            <div className="text-center text-xs font-bold text-on-surface-variant/50 uppercase tracking-widest">Sun</div>
-
-            {calendarDays.map((dayData, index) => (
-              <div key={index} className="flex justify-center items-center py-4">
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
-                  dayData.isToday 
-                    ? 'ring-4 ring-[#E87722] bg-[#E87722] text-white shadow-lg shadow-orange-500/30'
-                    : dayData.checkedIn 
-                      ? 'bg-primary-container text-white'
-                      : dayData.isCurrentMonth
-                        ? 'border border-outline-variant'
-                        : 'text-on-surface-variant/30'
-                }`}>
-                  {dayData.day}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          <div className="border-t border-outline-variant/20 pt-6 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-primary-container"></span>
-              <span className="text-xs font-semibold text-on-surface-variant">Checked In</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full bg-[#E87722]"></span>
-              <span className="text-xs font-semibold text-on-surface-variant">Today</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full border border-outline-variant bg-white"></span>
-              <span className="text-xs font-semibold text-on-surface-variant">No Check-in</span>
-            </div>
+          <div>
+            <p className="text-xs font-bold uppercase text-slate-400">Active Streak</p>
+            <p className="text-2xl font-black text-[#1A3C5E]">{memberCheckIns.length > 0 ? '7 Days' : '0 Days'}</p>
           </div>
         </div>
 
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_8px_30px_rgb(26,60,94,0.04)]">
-            <h3 className="font-bold text-[#1A3C5E] mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-xl">view_week</span>
-              Weekly Snapshot
-            </h3>
-            <div className="flex justify-between gap-1">
-              {weeklyData.map((data, index) => (
-                <div key={index} className="flex flex-col items-center gap-2">
-                  <span className="text-[10px] uppercase font-bold text-on-surface-variant/60">{data.day}</span>
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                    data.done 
-                      ? 'bg-primary-container text-white' 
-                      : 'border-2 border-outline-variant/30 text-on-surface-variant/30'
-                  }`}>
-                    {data.done ? (
-                      <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: "'wght' 700" }}>check</span>
-                    ) : (
-                      <span className="text-[10px] font-bold">{index + 1}</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-blue-50 text-[#1A3C5E] flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-2xl font-bold">event_available</span>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase text-slate-400">Sessions in {MONTH_NAMES[month]}</p>
+            <p className="text-2xl font-black text-[#1A3C5E]">{monthlyCheckInCount} Visits</p>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/80 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-700 flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-2xl font-bold">verified</span>
+          </div>
+          <div>
+            <p className="text-xs font-bold uppercase text-slate-400">Lifetime Total</p>
+            <p className="text-2xl font-black text-[#1A3C5E]">{memberCheckIns.length} Sessions</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Calendar Card */}
+      <div className="bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 sm:p-8">
+        {/* Month Navigation */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h2 className="text-2xl font-black text-[#1A3C5E]">
+              {MONTH_NAMES[month]} {year}
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">Click any highlighted date to inspect exact check-in time</p>
           </div>
 
-          <div className="bg-surface-container-lowest p-6 rounded-xl shadow-[0_8px_30px_rgb(26,60,94,0.04)]">
-            <h3 className="font-bold text-[#1A3C5E] mb-6 flex items-center gap-2">
-              <span className="material-symbols-outlined text-xl">history</span>
-              Recent Activity
-            </h3>
-            <div className="space-y-6">
-              {recentActivity.map((activity, index) => (
-                <div key={index} className="flex gap-4">
-                  <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-surface-container-low flex items-center justify-center">
-                    <span className="material-symbols-outlined text-primary">verified</span>
-                  </div>
-                  <div className="flex-1">
-                    <h4 className="text-sm font-bold text-on-surface">{activity.title}</h4>
-                    <p className="text-[11px] text-on-surface-variant/60">{activity.date} • {activity.time}</p>
-                    <span className="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-bold bg-primary/5 text-primary border border-primary/10 uppercase tracking-tighter">Verified</span>
-                  </div>
-                </div>
-              ))}
-
-              <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex gap-3">
-                <span className="material-symbols-outlined text-amber-600">warning</span>
-                <div>
-                  <h4 className="text-xs font-bold text-amber-900">Inactivity Warning</h4>
-                  <p className="text-[11px] text-amber-800 leading-tight">No session in 8 days! Your streak is currently protected by a vacation pass.</p>
-                </div>
-              </div>
-            </div>
-            <button className="w-full mt-8 py-3 text-xs font-bold text-primary-container border-t border-outline-variant/10 hover:bg-surface-container-low transition-colors rounded-b-xl">
-              View All Records
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handlePrevMonth}
+              className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors text-slate-700"
+            >
+              <span className="material-symbols-outlined text-lg">chevron_left</span>
+            </button>
+            <button
+              onClick={() => setDate(new Date())}
+              className="px-3 py-1.5 border border-slate-200 hover:bg-slate-50 rounded-xl text-xs font-bold text-slate-700 transition-colors"
+            >
+              Today
+            </button>
+            <button
+              onClick={handleNextMonth}
+              className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl transition-colors text-slate-700"
+            >
+              <span className="material-symbols-outlined text-lg">chevron_right</span>
             </button>
           </div>
         </div>
-      </section>
 
-      <footer className="bg-primary/5 border border-primary/10 p-4 rounded-xl flex items-center justify-center gap-3">
-        <span className="material-symbols-outlined text-primary text-sm">info</span>
-        <p className="text-xs font-medium text-on-surface-variant">Consistent attendance is key to reaching your goals. Your primary trainer can view this record.</p>
-      </footer>
+        {/* Days of Week Header */}
+        <div className="grid grid-cols-7 gap-2 text-center text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">
+          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
+            <div key={day} className="py-1">
+              {day}
+            </div>
+          ))}
+        </div>
+
+        {/* Calendar Grid */}
+        <div className="grid grid-cols-7 gap-2">
+          {calendarDays.map((cell, idx) => {
+            const hasCheckIn = !!cell.checkIn;
+            const isSelected = selectedRecord?.dateStr === cell.dateKey;
+
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => {
+                  if (cell.isCurrentMonth) {
+                    setSelectedRecord({
+                      dateStr: cell.dateKey,
+                      timestamp: cell.checkIn ? cell.checkIn.checkedInAt : undefined,
+                    });
+                  }
+                }}
+                disabled={!cell.isCurrentMonth}
+                className={`aspect-square rounded-2xl p-2 flex flex-col justify-between items-center transition-all text-xs font-bold relative ${
+                  !cell.isCurrentMonth
+                    ? 'opacity-20 cursor-default bg-transparent text-slate-400'
+                    : hasCheckIn
+                    ? 'bg-[#E87722] text-white shadow-sm hover:scale-105 ring-2 ring-orange-200'
+                    : cell.isToday
+                    ? 'border-2 border-[#1A3C5E] text-[#1A3C5E] bg-blue-50/50 hover:bg-blue-100/50'
+                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100'
+                } ${isSelected ? 'ring-4 ring-[#1A3C5E]' : ''}`}
+              >
+                <span className="text-xs">{cell.dayNumber}</span>
+                {hasCheckIn ? (
+                  <span className="material-symbols-outlined text-base">check</span>
+                ) : cell.isToday ? (
+                  <span className="text-[9px] uppercase font-bold tracking-tighter">Today</span>
+                ) : (
+                  <span className="h-4"></span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Selected Date Detail Drawer */}
+        {selectedRecord && (
+          <div className="mt-8 p-4 sm:p-5 bg-slate-50 rounded-2xl border border-slate-200/80 flex items-center justify-between gap-4 animate-fade-in">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white ${selectedRecord.timestamp ? 'bg-[#1E7A45]' : 'bg-slate-400'}`}>
+                <span className="material-symbols-outlined text-xl">
+                  {selectedRecord.timestamp ? 'verified' : 'cancel'}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                  {new Date(selectedRecord.dateStr).toLocaleDateString('en-IN', {
+                    weekday: 'long',
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                  })}
+                </p>
+                {selectedRecord.timestamp ? (
+                  <p className="text-sm font-bold text-[#1A3C5E]">
+                    Geo-Verified Gym Check-In at{' '}
+                    <span className="text-[#E87722]">
+                      {new Date(selectedRecord.timestamp).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm font-medium text-slate-600">No attendance recorded on this day.</p>
+                )}
+              </div>
+            </div>
+
+            <button
+              onClick={() => setSelectedRecord(null)}
+              className="text-xs font-semibold text-slate-400 hover:text-slate-600 p-1"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Weekly Breakdown Table (PRD US-007: Zero check-in weeks distinguished) */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+        <h3 className="text-lg font-black text-[#1A3C5E] mb-4">Weekly Attendance Breakdown</h3>
+
+        <div className="space-y-3">
+          {weeklyBreakdown.map((week, idx) => (
+            <div
+              key={idx}
+              className={`p-4 rounded-xl flex items-center justify-between text-xs sm:text-sm border transition-all ${
+                week.count === 0
+                  ? 'bg-slate-50/70 border-slate-200 text-slate-400'
+                  : 'bg-white border-slate-200 shadow-sm text-slate-800'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <span className="font-bold text-[#1A3C5E]">Week {week.weekNum}</span>
+                {week.count === 0 ? (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-red-50 text-red-700">
+                    0 Sessions • Inactive Week
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800">
+                    {week.count} Sessions Logged
+                  </span>
+                )}
+              </div>
+
+              <div className="flex gap-1.5">
+                {week.days.map((d, dIdx) => (
+                  <div
+                    key={dIdx}
+                    className={`w-4 h-4 rounded-full ${
+                      d.checkIn ? 'bg-[#E87722]' : 'bg-slate-200'
+                    }`}
+                    title={d.checkIn ? `Checked in on ${d.dateKey}` : d.dateKey}
+                  />
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

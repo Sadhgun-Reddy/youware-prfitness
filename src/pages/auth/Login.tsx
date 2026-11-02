@@ -1,51 +1,104 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
-import { mockUsers, mockAdmin } from '../../data/mock';
+import { useDataStore } from '../../store/useDataStore';
+import { mockAdmin } from '../../data/mock';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [selectedRole, setSelectedRole] = useState<'member' | 'pt' | 'admin'>('member');
-  const [email, setEmail] = useState('alex.jordan@performance.com');
+  const { loginAsUser, loginAsAdmin } = useAuthStore();
+  const { members, adminSettings } = useDataStore();
+
+  const [email, setEmail] = useState('arjun@example.com');
   const [password, setPassword] = useState('password123');
-  const [error, setError] = useState('Incorrect email or password');
+  const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const { loginAsUser, loginAsAdmin } = useAuthStore();
+
+  // Quick switcher for demo testing
+  const selectQuickAccount = (role: 'pt' | 'normal' | 'admin') => {
+    setError('');
+    if (role === 'admin') {
+      setEmail(adminSettings.email || mockAdmin.email);
+      setPassword('admin123');
+    } else if (role === 'pt') {
+      const ptUser = members.find(m => m.planType === 'personal_training') || members[0];
+      setEmail(ptUser ? ptUser.email : 'arjun@example.com');
+      setPassword('password123');
+    } else {
+      const normalUser = members.find(m => m.planType === 'normal') || members[1];
+      setEmail(normalUser ? normalUser.email : 'vikram@example.com');
+      setPassword('password123');
+    }
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    if (!email.trim() || !password) {
+      setError('Please enter both email and password.');
+      return;
+    }
+
     setLoading(true);
 
     setTimeout(() => {
-      if (selectedRole === 'admin') {
-        loginAsAdmin(mockAdmin);
+      const trimmedEmail = email.trim().toLowerCase();
+
+      // Check Admin
+      const adminEmail = (adminSettings.email || mockAdmin.email).toLowerCase();
+      if (trimmedEmail === adminEmail) {
+        loginAsAdmin(adminSettings || mockAdmin);
+        setLoading(false);
         navigate('/admin');
-      } else {
-        // pick a representative user per role
-        let user = mockUsers.find(u => u.planType === 'personal_training') || mockUsers[0];
-        if (selectedRole === 'member') {
-          // prefer a normal member (non-PT) if available
-          const normal = mockUsers.find(u => u.planType === 'normal');
-          user = normal || user;
-          loginAsUser(user);
-          navigate('/dashboard');
-        } else if (selectedRole === 'pt') {
-          // PT route
-          user = mockUsers.find(u => u.planType === 'personal_training') || mockUsers[0];
-          loginAsUser(user);
-          navigate('/plan/workout');
-        }
+        return;
       }
+
+      // Check Members
+      const matchedUser = members.find(m => m.email.toLowerCase() === trimmedEmail);
+      if (matchedUser) {
+        loginAsUser(matchedUser);
+        setLoading(false);
+        navigate('/dashboard');
+        return;
+      }
+
+      // Fallback for custom registered user or test email
+      if (trimmedEmail.includes('@')) {
+        const fallbackUser = members[0] || {
+          id: 'm1',
+          name: 'Arjun Mehta',
+          email: trimmedEmail,
+          dob: '1995-06-15',
+          gender: 'male',
+          height: 175,
+          weight: 72,
+          fitnessGoal: 'muscle_gain',
+          gymName: 'FitZone Gym',
+          gymLocation: 'Mumbai',
+          healthConditions: '',
+          planType: 'personal_training',
+          membershipStartDate: new Date().toISOString().split('T')[0],
+          membershipEndDate: new Date(Date.now() + 30 * 86400000).toISOString().split('T')[0],
+          status: 'active',
+          createdAt: new Date().toISOString(),
+        };
+        loginAsUser(fallbackUser);
+        setLoading(false);
+        navigate('/dashboard');
+        return;
+      }
+
+      setError('Invalid email or password. Please try again.');
       setLoading(false);
-    }, 800);
+    }, 500);
   };
 
   return (
-    <main className="min-h-screen flex flex-col md:flex-row">
-        {/* LEFT PANEL: Brand & Visuals */}
-      <section className="hidden md:flex md:w-1/2 bg-gradient-to-br from-[#1A3C5E] to-[#0F2942] p-12 lg:p-20 flex-col justify-between relative overflow-hidden">
+    <main className="min-h-screen flex flex-col md:flex-row bg-[#F8FAFC]">
+      {/* LEFT PANEL: Brand & Visuals */}
+      <section className="hidden md:flex md:w-1/2 bg-gradient-to-br from-[#1A3C5E] via-[#15324E] to-[#0B1E2E] p-10 lg:p-16 flex-col justify-between relative overflow-hidden">
         {/* Background Abstract Graphic */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-10 w-full h-full pointer-events-none">
           <svg className="w-full h-full scale-150" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
@@ -55,171 +108,188 @@ export default function Login() {
 
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center">
-              <span className="material-symbols-outlined text-[#1A3C5E] text-2xl" style={{ fontVariationSettings: "'FILL' 1" }}>fitness_center</span>
+            <div className="w-11 h-11 bg-white rounded-xl flex items-center justify-center shadow-lg">
+              <span className="material-symbols-outlined text-[#1A3C5E] text-2xl font-black">fitness_center</span>
             </div>
-            <span className="text-white text-2xl font-black tracking-tighter">FitSync Pro</span>
+            <div>
+              <span className="text-white text-2xl font-black tracking-tight">FitSync Pro</span>
+              <p className="text-xs text-white/60 font-medium">Gym Management & Member Experience</p>
+            </div>
           </div>
         </div>
 
-        <div className="relative z-10">
-          <h1 className="text-5xl lg:text-6xl font-black text-white leading-tight mb-6">
-            Track. Progress. <br /><span className="text-[#fa8530]">Perform.</span>
+        <div className="relative z-10 my-8">
+          <h1 className="text-4xl lg:text-5xl font-black text-white leading-tight mb-4">
+            Track. Progress. <br /><span className="text-[#E87722]">Perform.</span>
           </h1>
-          <p className="text-xl text-white/70 max-w-md font-medium leading-relaxed">
-            Your gym journey, all in one place. Experience high-end tracking and personalized insights designed for peak performance.
+          <p className="text-base lg:text-lg text-white/70 max-w-md font-normal leading-relaxed">
+            Your gym journey, unified in one platform. High-accountability tracking, geo-verified attendance, and personalized coaching.
           </p>
         </div>
 
-        <div className="relative z-10 flex flex-wrap gap-3">
-          <div className="px-5 py-2.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm text-white text-sm font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">location_on</span> Geo Check-In
+        <div className="relative z-10 flex flex-wrap gap-2.5">
+          <div className="px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-sm text-white text-xs font-semibold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px] text-[#E87722]">location_on</span> Geo Check-In
           </div>
-          <div className="px-5 py-2.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm text-white text-sm font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">leaderboard</span> Progress Tracking
+          <div className="px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-sm text-white text-xs font-semibold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px] text-[#E87722]">leaderboard</span> Weekly Progress
           </div>
-          <div className="px-5 py-2.5 rounded-full border border-white/20 bg-white/5 backdrop-blur-sm text-white text-sm font-semibold flex items-center gap-2">
-            <span className="material-symbols-outlined text-[18px]">assignment_turned_in</span> Personalised Plans
+          <div className="px-4 py-2 rounded-full border border-white/15 bg-white/5 backdrop-blur-sm text-white text-xs font-semibold flex items-center gap-2">
+            <span className="material-symbols-outlined text-[16px] text-[#E87722]">assignment_turned_in</span> Personalised Plans
           </div>
         </div>
       </section>
 
-        {/* RIGHT PANEL: Login Form */}
-        <section className="w-full lg:w-2/5 flex flex-col items-center justify-center bg-white/50 relative px-6 py-12">
-          {/* Role selector */}
-          <div className="mb-4 w-full max-w-md flex gap-3 justify-center">
-            {[
-              { id: 'member', label: 'Member' },
-              { id: 'pt', label: 'PT' },
-              { id: 'admin', label: 'Admin' },
-            ].map(r => {
-              const active = selectedRole === r.id;
-              const base = 'px-4 py-2 rounded-full text-xs font-bold transition-colors';
-              const cls = active
-                ? base + ' bg-[#eef6ff] text-[#1A3C5E] border border-[#1A3C5E] shadow-sm'
-                : base + ' bg-white text-slate-700 border border-slate-200 hover:bg-slate-50';
-              return (
-                <button key={r.id} onClick={() => setSelectedRole(r.id as any)} className={cls}>
-                  {r.label}
-                </button>
-              );
-            })}
-          </div>
-          {/* existing login card will render below this patch keeps structure intact */}
-        </section>
-      <section className="w-full md:w-1/2 bg-[#f8f9fb] flex flex-col items-center justify-center p-6 lg:p-24 min-h-screen">
+      {/* RIGHT PANEL: Login Form */}
+      <section className="w-full md:w-1/2 flex flex-col items-center justify-center p-6 sm:p-10 lg:p-16">
         <div className="w-full max-w-[420px]">
           {/* Header */}
-          <div className="mb-12">
-            <h1 className="text-4xl font-black text-[#1A3C5E] mb-3">Welcome Back</h1>
-            <p className="text-[#43474E] font-medium">Log in to your FitZone Gym account.</p>
+          <div className="mb-6">
+            <h2 className="text-3xl font-black text-[#1A3C5E] mb-2 tracking-tight">Welcome Back</h2>
+            <p className="text-[#43474E] text-sm font-medium">Log in to your FitZone Gym account.</p>
+          </div>
+
+          {/* Quick Demo Switcher */}
+          <div className="mb-6 p-3 bg-white rounded-xl border border-slate-200/80 shadow-sm">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Quick Demo Accounts:</p>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => selectQuickAccount('pt')}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-[#E8EEF4] text-[#1A3C5E] hover:bg-[#D1DDE9] transition-colors truncate text-center"
+                title="Personal Training Member"
+              >
+                PT Member
+              </button>
+              <button
+                type="button"
+                onClick={() => selectQuickAccount('normal')}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors truncate text-center"
+                title="Normal Membership"
+              >
+                Normal Member
+              </button>
+              <button
+                type="button"
+                onClick={() => selectQuickAccount('admin')}
+                className="px-2.5 py-1.5 rounded-lg text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 hover:bg-amber-100 transition-colors truncate text-center"
+                title="Admin (Gym Owner)"
+              >
+                Admin (Ravi)
+              </button>
+            </div>
           </div>
 
           {/* Form */}
-          <form className="space-y-8" onSubmit={handleLogin}>
+          <form className="space-y-5" onSubmit={handleLogin}>
             {/* Email Field */}
-            <div className="space-y-2.5">
-              <label className="text-sm font-bold text-[#1A3C5E] uppercase tracking-widest block px-1" htmlFor="email">Email Address</label>
+            <div className="space-y-1.5">
+              <label className="text-xs font-bold text-[#1A3C5E] uppercase tracking-wider block" htmlFor="email">
+                Email Address
+              </label>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-[#ba1a1a] text-xl">mail</span>
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <span className="material-symbols-outlined text-lg">mail</span>
                 </div>
                 <input
-                  className="w-full pl-11 pr-4 py-4 rounded-xl border-2 bg-[#F2F4F6] text-[#1A3C5E] focus:ring-0 focus:outline-none transition-all"
-                  style={{ boxShadow: 'inset 2px 2px 5px #d1d9e6, inset -2px -2px 5px #ffffff' }}
                   id="email"
                   name="email"
-                  placeholder="name@example.com"
                   type="email"
+                  required
+                  placeholder="name@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 rounded-xl border border-slate-300 bg-white text-[#1A3C5E] text-sm focus:border-[#1A3C5E] focus:ring-1 focus:ring-[#1A3C5E] focus:outline-none transition-all shadow-sm"
                 />
               </div>
-              {/* Error State */}
-              {error && (
-                <p className="text-[#ba1a1a] text-sm font-semibold flex items-center gap-1.5 mt-1 px-1">
-                  <span className="material-symbols-outlined text-[16px]">error</span>
-                  {error}
-                </p>
-              )}
             </div>
 
             {/* Password Field */}
-            <div className="space-y-2.5">
-              <label className="text-sm font-bold text-[#1A3C5E] uppercase tracking-widest block px-1" htmlFor="password">Password</label>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-[#1A3C5E] uppercase tracking-wider block" htmlFor="password">
+                  Password
+                </label>
+                <Link to="/forgot-password" className="text-xs font-semibold text-[#E87722] hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-                  <span className="material-symbols-outlined text-[#ba1a1a] text-xl">lock</span>
+                <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                  <span className="material-symbols-outlined text-lg">lock</span>
                 </div>
                 <input
-                  className="w-full pl-11 pr-12 py-4 rounded-xl border-2 bg-[#F2F4F6] text-[#1A3C5E] focus:ring-0 focus:outline-none transition-all"
-                  style={{ boxShadow: 'inset 2px 2px 5px #d1d9e6, inset -2px -2px 5px #ffffff' }}
                   id="password"
                   name="password"
-                  placeholder="••••••••"
+                  required
                   type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-11 py-3 rounded-xl border border-slate-300 bg-white text-[#1A3C5E] text-sm focus:border-[#1A3C5E] focus:ring-1 focus:ring-[#1A3C5E] focus:outline-none transition-all shadow-sm"
                 />
                 <button
-                  className="absolute inset-y-0 right-0 pr-4 flex items-center text-[#43474E] hover:text-[#1A3C5E] transition-colors"
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
+                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-[#1A3C5E] transition-colors"
                 >
-                  <span className="material-symbols-outlined">{showPassword ? 'visibility' : 'visibility_off'}</span>
+                  <span className="material-symbols-outlined text-lg">{showPassword ? 'visibility' : 'visibility_off'}</span>
                 </button>
               </div>
             </div>
 
-            {/* Utilities */}
-            <div className="flex items-center justify-between px-1">
-              <label className="flex items-center gap-3 cursor-pointer group">
-                <div className="relative flex items-center">
-                  <input
-                    className="peer h-5 w-5 rounded border-[#c3c6cf] bg-[#F2F4F6] text-[#401a00] focus:ring-transparent transition-all"
-                    type="checkbox"
-                  />
-                  <span className="material-symbols-outlined absolute opacity-0 peer-checked:opacity-100 text-white text-[16px] left-0.5 pointer-events-none">check</span>
-                </div>
-                <span className="text-sm font-semibold text-[#43474E] group-hover:text-[#1A3C5E] transition-colors">Remember me</span>
-              </label>
-              <Link to="/forgot-password" className="text-sm font-bold text-[#401a00] hover:text-[#401a00] transition-colors">Forgot your password?</Link>
-            </div>
+            {/* Error Message */}
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-xs font-medium flex items-center gap-2">
+                <span className="material-symbols-outlined text-base flex-shrink-0">error</span>
+                <span>{error}</span>
+              </div>
+            )}
 
-            {/* Submit */}
+            {/* Submit Button */}
             <button
-              className="w-full py-4 bg-[#E87722] text-white font-black text-lg rounded-xl shadow-[0_10px_20px_-5px_rgba(232,119,34,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
               type="submit"
               disabled={loading}
+              className="w-full py-3.5 bg-[#E87722] hover:bg-[#D06A1C] text-white font-bold text-base rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.99] disabled:opacity-50"
             >
-              {loading ? 'Logging in...' : (
+              {loading ? (
                 <>
-                  Log In
-                  <span className="material-symbols-outlined">arrow_forward</span>
+                  <svg className="animate-spin h-5 w-5 text-white" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Logging in...</span>
+                </>
+              ) : (
+                <>
+                  <span>Log In</span>
+                  <span className="material-symbols-outlined text-lg">arrow_forward</span>
                 </>
               )}
             </button>
           </form>
 
-          {/* Footer Links */}
-          <div className="mt-12 space-y-8 text-center">
-            <p className="text-[#43474E] font-medium">
+          {/* Footer Navigation */}
+          <div className="mt-8 pt-6 border-t border-slate-200 space-y-4 text-center">
+            <p className="text-sm text-[#43474E]">
               New to FitZone Gym?
-              <Link to="/register/step-1" className="text-[#1A3C5E] font-bold hover:underline underline-offset-4 ml-1">Create Account</Link>
-            </p>
-            <div className="pt-8 border-t border-[#eceef0]">
-              <Link to="/admin" className="text-sm font-bold text-[#495f7f] flex items-center justify-center gap-1.5 hover:text-[#1A3C5E] transition-colors">
-                Admin login
-                <span className="material-symbols-outlined text-[18px]">east</span>
+              <Link to="/register/step-1" className="text-[#1A3C5E] font-bold hover:underline ml-1.5">
+                Create Account
               </Link>
+            </p>
+            <div>
+              <button
+                type="button"
+                onClick={() => selectQuickAccount('admin')}
+                className="text-xs font-semibold text-slate-500 hover:text-[#1A3C5E] inline-flex items-center gap-1 transition-colors"
+              >
+                <span>Switch to Admin Portal Credentials</span>
+                <span className="material-symbols-outlined text-sm">east</span>
+              </button>
             </div>
           </div>
         </div>
       </section>
-
-      {/* Decorative Corner Gradient */}
-      <div className="fixed bottom-0 right-0 w-64 h-64 bg-gradient-to-tl from-[#ffb68b]/20 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
-      <div className="fixed top-0 left-0 w-64 h-64 bg-gradient-to-br from-[#d1e4ff]/20 to-transparent rounded-full blur-3xl -z-10 pointer-events-none" />
     </main>
   );
 }

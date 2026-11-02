@@ -1,165 +1,225 @@
-import { useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useState, useMemo } from 'react';
+import { useParams, Link } from 'react-router-dom';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
+
+const DAYS = [
+  { id: 'monday', label: 'Monday' },
+  { id: 'tuesday', label: 'Tuesday' },
+  { id: 'wednesday', label: 'Wednesday' },
+  { id: 'thursday', label: 'Thursday' },
+  { id: 'friday', label: 'Friday' },
+  { id: 'saturday', label: 'Saturday' },
+  { id: 'sunday', label: 'Sunday' },
+] as const;
 
 export default function WorkoutPlan() {
   const { day: dayParam } = useParams<{ day?: string }>();
-  const [selectedDay, setSelectedDay] = useState(dayParam || 'monday');
-  const [activeTab, setActiveTab] = useState(0);
+  const { user } = useAuthStore();
+  const { workoutPlans, videos } = useDataStore();
 
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-  const today = days[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1];
-
-  const exercises = [
-    {
-      name: 'Flat Bench Press',
-      sets: '4 SETS',
-      reps: '8-10 REPS',
-      rest: '90s REST',
-      tip: 'Focus on the eccentric phase; 3 seconds down. Keep scapula retracted.',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDYx8k8xw0_VKFBvEOz0ZvLosjiTWAjjFM-_fFThoH0fzIB7Zxpoi6AGUrthwZItCM_8r0QHK87lH-UF45e6j4rFsAdH2ikH83CwhaJnLeD_iHssB1E8MbiC5T2QkEzsQGkdYPs7o0STakiYgZuqOVImPzcqS__RTam12VGsZ4NsqzTsgHcZYKGQWQfzbEFzuUv7_bwfWvGsxNgVCxfo7LxsN5Q6oYloJnS8xPNRwByEpBaYiR7zef0zDfM2uLFtdrNDedO-bTVweg',
-    },
-    {
-      name: 'Incline Dumbbell Press',
-      sets: '3 SETS',
-      reps: '12 REPS',
-      rest: '60s REST',
-      tip: '30 degree incline. Stretch at the bottom, don\'t clink weights at top.',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuADbPuDS4gut6Pib6lhY7iVBgC-bgJ5K_HwQV09e2lid14TtB1G99VQJ4GJa3MBtDC3g2J1d7miZcxvN1RfaQ-r3u133mD7-LU5sRybID-TE_9ti2bc1TEmiOBaZk6F5zTIvf7_RjQfDsbCBIMSxIjQ2fxBbx01soSuGeqUJ98VmhSoBylWvQqZsTeuuMRAgaPamWL5yxujdNZkT1ITJ0k1pG90_NyvlNUiOxaVMYxm48r-gv5vY46Xq3TMcmq9emcIAp0AmiMO3b4',
-    },
-    {
-      name: 'Tricep Pushdown',
-      sets: '4 SETS',
-      reps: '15 REPS',
-      rest: '45s REST',
-      tip: 'Straight bar attachment. Elbows glued to ribs. Squeeze at the bottom.',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBr8799F9JjXbpAmHndprzf63m2pHI-MExEEdGwyVrNBxK8tQ8nsaHMkp5RojUYeUPAqgzauGAa17B5tupqNWzxkbTOU3ff29RkJtwkXefKx2hiI_Wd_Px3ULibjvwRcCEln2_WSGfGZNQN8CQBvtb3HShmWAtD0bTbUy5Xgk86BleFG9seNBYbIPXmGsaqMSEAilnHOiyCbCKC4E6nre48BWt7OBQ3zDigT7nNowgEMNdrwmU1n3yfQcxWcn5FZ8z-W9HreT5Z7O8',
-    },
-    {
-      name: 'Skull Crushers',
-      sets: '3 SETS',
-      reps: '10 REPS',
-      rest: '60s REST',
-      tip: 'Use EZ bar. Lower to forehead, full extension without locking out.',
-      image: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA1CW0oRonFDE445qBB4MtIy3Ss4NzfFnZMDO2k6CV5XGUPZ1P0WVS0HJjTl_2dv3u0ca-PCI5pXVzFMRcF3awL1-0htcRsD1FYJDYOk0a83Xco4Xoj3X5ZxBijYCgXjzfJiLu1Zta8QUsYmXItaR1vNWsB0g2FR4xCxMqFmugC5jIBHua5eao7dGJJZ5I5VpI_XOmU6rp3jjFTJdoLghyQ5xvp97FUestJF4nL4C_Tg5p_CNYgR3mw9bSkhYC2_j6MOT2X7Dn8c0g',
-    },
-  ];
-
-  const trainer = {
-    name: 'Ravi Sharma',
-    role: 'Lead Strength Coach',
-    avatar: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAkgvh2kSSgjR3qtN7kzXaH5YloAR2qXFIeYMAtDlI8jQXqkn3oKWt0tqutMHLwd1jgZ7ynOGai3KkfNuzlse9jjUvjRquqFf31aNghVwqcv83Fk20c9XtqedPy4t2_oVRxZAx9rF1QdRxKpU57wHwZ6ClXWUNZX_PihtcXP2BVmMrOP4CULtU2gx3LK9XD_xmh4VGp403_0JCZ-7fDsy3Vo6YrUseZkkmmgZ1tFs0mvAjYVT2rd9P8wDFq_-T_HDc-rHbD_vlCjR4',
-    message: 'This block focuses on mechanical tension. Don\'t skip the rest periods; they are essential for ATP recovery.',
+  const currentMember = user || {
+    id: 'm1',
+    name: 'Arjun Mehta',
+    planType: 'personal_training' as const,
   };
 
+  const isPT = currentMember.planType === 'personal_training';
+
+  // Determine current day of week
+  const todayDayName = DAYS[new Date().getDay() === 0 ? 6 : new Date().getDay() - 1].id;
+  const [selectedDay, setSelectedDay] = useState<string>(dayParam || todayDayName);
+
+  // Get member workout plan
+  const plan = useMemo(() => {
+    return workoutPlans.find(p => p.memberId === currentMember.id) || workoutPlans[0];
+  }, [workoutPlans, currentMember]);
+
+  const activeDayPlan = useMemo(() => {
+    if (!plan) return null;
+    return plan.days.find(d => d.dayOfWeek === selectedDay) || {
+      dayOfWeek: selectedDay as any,
+      exercises: [],
+      isRestDay: true,
+    };
+  }, [plan, selectedDay]);
+
+  if (!isPT) {
+    return (
+      <div className="max-w-3xl mx-auto py-12 text-center space-y-6">
+        <div className="w-20 h-20 bg-orange-100 text-[#E87722] rounded-3xl flex items-center justify-center mx-auto shadow-md">
+          <span className="material-symbols-outlined text-4xl">lock</span>
+        </div>
+        <div>
+          <span className="px-3 py-1 bg-orange-100 text-[#E87722] text-xs font-bold rounded-full uppercase tracking-wider mb-2 inline-block">
+            Personal Training Feature
+          </span>
+          <h1 className="text-3xl font-black text-[#1A3C5E]">Personalised Workout Plan</h1>
+          <p className="text-slate-600 text-sm max-w-md mx-auto mt-2">
+            You are currently on the <span className="font-bold text-slate-800">Normal Membership Plan</span>. Upgrade to Personal Training to unlock custom training routines created and adapted specifically for you by Coach Ravi Sharma.
+          </p>
+        </div>
+
+        <div className="pt-2">
+          <Link
+            to="/register/plan-select"
+            className="px-8 py-3.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl font-bold text-sm shadow-md transition-all inline-flex items-center gap-2 active:scale-95"
+          >
+            <span>Upgrade to Personal Training (₹3,500/mo)</span>
+            <span className="material-symbols-outlined text-base">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div>
-      <div className="bg-tertiary-fixed text-on-tertiary-fixed-variant py-2 px-6 text-center text-xs font-bold tracking-widest uppercase mb-6">
-        ⭐ Personal Training — Your trainer-assigned workout plan
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-[#E87722]">
+              <span className="material-symbols-outlined text-xs">verified</span>
+              Personal Training Plan
+            </span>
+            <span className="text-xs text-slate-400">Assigned by Coach Ravi Sharma</span>
+          </div>
+          <h1 className="text-3xl font-black text-[#1A3C5E] tracking-tight">My Workout Routine</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Last updated: {plan ? new Date(plan.updatedAt || plan.assignedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}
+          </p>
+        </div>
+
+        <Link
+          to="/videos"
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#1A3C5E] rounded-xl text-xs font-bold flex items-center gap-1.5 transition-colors self-start sm:self-auto"
+        >
+          <span className="material-symbols-outlined text-base">play_circle</span>
+          Exercise Video Library
+        </Link>
       </div>
 
-      <header className="mb-10">
-        <h1 className="text-4xl font-extrabold text-primary tracking-tight mb-1">My Workout Plan</h1>
-        <p className="text-on-surface-variant text-sm font-medium">Assigned by Ravi S. · Last updated 10 Jun 2025</p>
-      </header>
+      {/* Day Selector Tab Strip (PRD Screen 4: Mon-Sun strip, active highlighted in primary navy) */}
+      <div className="bg-white p-2 rounded-2xl border border-slate-200/80 shadow-sm flex overflow-x-auto gap-1.5">
+        {DAYS.map(day => {
+          const isSelected = selectedDay === day.id;
+          const isToday = todayDayName === day.id;
+          const dayData = plan?.days.find(d => d.dayOfWeek === day.id);
+          const isRest = dayData?.isRestDay || (dayData?.exercises.length === 0);
 
-      <section className="mb-10 overflow-x-auto no-scrollbar flex gap-3 pb-2">
-        {days.map((day, i) => (
-          <button
-            key={day}
-            onClick={() => setSelectedDay(day.toLowerCase())}
-            className={`px-6 py-3 rounded-full text-sm flex-shrink-0 transition-all duration-300 active:scale-95 ${
-              selectedDay === day.toLowerCase()
-                ? 'bg-orange-100 text-orange-600 font-bold'
-                : 'bg-surface-container-low text-on-surface-variant hover:bg-surface-container-high'
-            }`}
-          >
-            {day}
-          </button>
-        ))}
-      </section>
+          return (
+            <button
+              key={day.id}
+              onClick={() => setSelectedDay(day.id)}
+              className={`flex-1 min-w-[100px] py-3 px-3 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-1 ${
+                isSelected
+                  ? 'bg-[#1A3C5E] text-white shadow-md'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span className="capitalize">{day.label}</span>
+              <span className={`text-[10px] font-medium ${
+                isSelected ? 'text-white/70' : isRest ? 'text-slate-400' : 'text-[#E87722]'
+              }`}>
+                {isRest ? 'Rest' : `${dayData?.exercises.length || 0} Ex.`}
+              </span>
+              {isToday && (
+                <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-[#E87722]' : 'bg-[#1A3C5E]'}`} />
+              )}
+            </button>
+          );
+        })}
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-primary-container">Monday — Chest & Triceps</h2>
-            <div className="flex items-center gap-2 text-tertiary-fixed-dim bg-tertiary-container px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
-              <span className="material-symbols-outlined text-sm">schedule</span> 65 MINS
-            </div>
+      {/* Exercises Section for Active Day */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-xl font-black text-[#1A3C5E] capitalize flex items-center gap-2">
+            <span>{selectedDay} Routine</span>
+            {activeDayPlan?.isRestDay ? (
+              <span className="text-xs font-bold text-slate-400 bg-slate-100 px-2.5 py-0.5 rounded-full uppercase">Rest Day</span>
+            ) : (
+              <span className="text-xs font-bold text-[#E87722] bg-orange-50 px-2.5 py-0.5 rounded-full uppercase">
+                {activeDayPlan?.exercises.length} Exercises Scheduled
+              </span>
+            )}
+          </h2>
+          <span className="text-xs text-slate-400 font-medium">Rest Periods: 60s–90s</span>
+        </div>
+
+        {activeDayPlan && !activeDayPlan.isRestDay && activeDayPlan.exercises.length > 0 ? (
+          <div className="space-y-3">
+            {activeDayPlan.exercises.map((ex, idx) => {
+              // Find matching video if any
+              const matchingVideo = videos.find(v => v.title.toLowerCase().includes(ex.name.toLowerCase()));
+
+              return (
+                <div
+                  key={idx}
+                  className="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200/80 hover:shadow-md transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                >
+                  <div className="flex items-start gap-4 flex-1">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#E87722] flex items-center justify-center font-black text-sm flex-shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h3 className="text-base font-bold text-[#1A3C5E]">{ex.name}</h3>
+                        {matchingVideo && (
+                          <Link
+                            to={`/videos/${matchingVideo.categorySlug || 'general'}/${matchingVideo.id}`}
+                            className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#E87722] hover:underline"
+                          >
+                            <span className="material-symbols-outlined text-sm">play_circle</span>
+                            Watch Form
+                          </Link>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap gap-2 text-xs font-semibold text-slate-600">
+                        <span className="bg-slate-100 px-2.5 py-1 rounded-md">{ex.sets} Sets</span>
+                        <span className="bg-slate-100 px-2.5 py-1 rounded-md">{ex.reps} Reps</span>
+                        <span className="bg-slate-100 px-2.5 py-1 rounded-md">{ex.restSeconds || 60}s Rest</span>
+                      </div>
+                      {ex.notes && (
+                        <p className="text-xs text-slate-500 italic mt-2 bg-amber-50/70 p-2 rounded-lg border border-amber-100">
+                          Coach Note: "{ex.notes}"
+                        </p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Link
+                    to="/videos"
+                    className="p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:text-[#1A3C5E] hover:bg-slate-50 transition-colors flex items-center gap-1 text-xs font-bold self-end sm:self-center"
+                  >
+                    <span className="material-symbols-outlined text-lg">videocam</span>
+                    Video Demo
+                  </Link>
+                </div>
+              );
+            })}
           </div>
-
-          <div className="space-y-4">
-            {exercises.map((exercise, i) => (
-              <div
-                key={i}
-                className="group bg-surface-container-lowest p-6 rounded-xl shadow-[0_4px_20px_rgba(26,60,94,0.06)] hover:shadow-[0_8px_30px_rgba(26,60,94,0.12)] transition-all duration-300 border-l-4 border-primary"
+        ) : (
+          /* Rest Day Card */
+          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200/80 space-y-3">
+            <div className="w-16 h-16 rounded-full bg-blue-50 text-[#1A3C5E] flex items-center justify-center mx-auto">
+              <span className="material-symbols-outlined text-3xl">bedtime</span>
+            </div>
+            <h3 className="text-xl font-black text-[#1A3C5E]">Rest & Muscle Recovery Day</h3>
+            <p className="text-xs text-slate-500 max-w-md mx-auto">
+              No strenuous lifting scheduled for {selectedDay}. Focus on adequate hydration, mobility, and hitting your 160g protein target.
+            </p>
+            <div className="pt-2">
+              <Link
+                to="/videos/mobility"
+                className="px-4 py-2 border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl text-xs font-bold inline-block"
               >
-                <div className="flex gap-6">
-                  <div className="w-24 h-24 rounded-lg overflow-hidden flex-shrink-0 bg-surface-container">
-                    <img className="w-full h-full object-cover" alt={exercise.name} src={exercise.image} />
-                  </div>
-                  <div className="flex-grow">
-                    <div className="flex justify-between items-start mb-2">
-                      <h3 className="text-lg font-bold text-primary uppercase tracking-tight">{exercise.name}</h3>
-                      <button className="text-primary hover:text-orange-600 transition-colors">
-                        <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>play_circle</span>
-                      </button>
-                    </div>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      <span className="bg-surface-container-low text-primary text-[10px] font-bold px-2 py-1 rounded uppercase tracking-tighter">{exercise.sets}</span>
-                      <span className="bg-surface-container-low text-primary text-[10px] font-bold px-2 py-1 rounded uppercase tracking-tighter">{exercise.reps}</span>
-                      <span className="bg-orange-100 text-orange-700 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-tighter">{exercise.rest}</span>
-                    </div>
-                    <p className="text-on-surface-variant text-sm italic">"{exercise.tip}"</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="lg:col-span-4 space-y-6">
-          <div className="bg-primary text-on-primary p-6 rounded-xl shadow-lg relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -mr-16 -mt-16"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-4 mb-4">
-                <img className="w-14 h-14 rounded-full border-2 border-orange-500 object-cover" alt={trainer.name} src={trainer.avatar} />
-                <div>
-                  <h4 className="font-bold">{trainer.name}</h4>
-                  <p className="text-primary-fixed-dim text-xs">{trainer.role}</p>
-                </div>
-              </div>
-              <p className="text-sm text-blue-100 mb-6 leading-relaxed">"{trainer.message}"</p>
-              <button className="w-full bg-white text-primary font-bold py-3 rounded-lg text-sm transition-transform active:scale-95">Message Trainer</button>
+                Browse Recovery & Mobility Routines
+              </Link>
             </div>
           </div>
-
-          <div className="bg-surface-container-low p-6 rounded-xl border-2 border-dashed border-outline-variant">
-            <div className="flex flex-col items-center text-center">
-              <span className="material-symbols-outlined text-4xl text-outline-variant mb-3">calendar_month</span>
-              <h4 className="text-primary font-bold mb-1">Rest Day: Sunday</h4>
-              <p className="text-on-surface-variant text-sm mb-4">No specific exercises assigned. Focus on active recovery and hydration.</p>
-              <button className="text-primary font-bold text-xs uppercase tracking-widest hover:text-orange-600 transition-colors">Log Mobility Session</button>
-            </div>
-          </div>
-
-          <div className="bg-white p-6 rounded-xl shadow-sm">
-            <h4 className="text-primary font-bold mb-4 uppercase text-xs tracking-widest">Plan Highlights</h4>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-on-surface-variant">Focus Area</span>
-                <span className="text-sm font-bold text-primary">Hypertrophy</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-on-surface-variant">Weekly Volume</span>
-                <span className="text-sm font-bold text-primary">24 Sets</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-on-surface-variant">Current Streak</span>
-                <span className="text-sm font-bold text-orange-600">12 Days</span>
-              </div>
-            </div>
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );

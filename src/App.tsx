@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuthStore } from './store/useAuthStore';
-import { mockUsers } from './data/mock';
-import React from "react";
+import React from 'react';
 
 // Public Pages
 import Landing from './pages/Landing';
@@ -58,18 +57,26 @@ import DietPlans from './pages/admin/DietPlans';
 import VideoManagement from './pages/admin/VideoManagement';
 import AdminSettings from './pages/admin/Settings';
 
-// Dev-only auto-login removed to allow access to login/signup pages.
-
 function AppRoutes() {
-  // Treat presence of a valid token as authentication as well as isAuthenticated flag
   const isAuthenticated = useAuthStore((s) => s.isAuthenticated && !!s.token);
   const role = useAuthStore((s) => s.role);
 
   return (
     <Routes>
-      {/* Auth Routes (Header present via layout) */}
+      {/* Auth Routes */}
       <Route element={<AuthLayout />}>
-        <Route path="/login" element={isAuthenticated && role === 'member' ? <Navigate to="/dashboard" /> : isAuthenticated && role === 'admin' ? <Navigate to="/admin" /> : <Login />} />
+        <Route
+          path="/login"
+          element={
+            isAuthenticated && role === 'member' ? (
+              <Navigate to="/dashboard" />
+            ) : isAuthenticated && role === 'admin' ? (
+              <Navigate to="/admin" />
+            ) : (
+              <Login />
+            )
+          }
+        />
         <Route path="/register/step-1" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep1 />} />
         <Route path="/register/step-2" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep2 />} />
         <Route path="/register/step-3" element={isAuthenticated ? <Navigate to="/dashboard" /> : <RegisterStep3 />} />
@@ -81,15 +88,14 @@ function AppRoutes() {
         <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
 
-      {/* Landing page remains outside auth layout to avoid header duplication */}
+      {/* Landing page */}
       <Route path="/" element={<Landing />} />
 
       {/* Stitch/Design conversions demo */}
       <Route path="/design/stitch/demo" element={<StitchDemo />} />
 
-      {/* Admin & Member routes remain as before but now auth layout applies to login/register only */}
       {/* Member Routes */}
-      <Route path="/dashboard" element={isAuthenticated && role === 'member' ? <UserLayout /> : <Navigate to="/login" />}> 
+      <Route path="/dashboard" element={isAuthenticated && role === 'member' ? <UserLayout /> : <Navigate to="/login" />}>
         <Route index element={<UserDashboard />} />
         <Route path="membership" element={<MembershipPage />} />
       </Route>
@@ -115,7 +121,6 @@ function AppRoutes() {
       </Route>
 
       {/* Admin Routes */}
-      // Admin login consolidated on the main login page (token-based access)
       <Route path="/admin" element={isAuthenticated && role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
         <Route index element={<AdminDashboard />} />
         <Route path="members" element={<Members />} />

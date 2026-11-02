@@ -1,221 +1,363 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
+import { Link } from 'react-router-dom';
 
-type CheckInState = 'ready' | 'loading' | 'success' | 'outside_radius' | 'permission_denied';
+function calculateDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3;
+  const radLat1 = (lat1 * Math.PI) / 180;
+  const radLat2 = (lat2 * Math.PI) / 180;
+  const deltaLat = ((lat2 - lat1) * Math.PI) / 180;
+  const deltaLon = ((lon2 - lon1) * Math.PI) / 180;
+
+  const a =
+    Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) +
+    Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Math.round(R * c);
+}
 
 export default function CheckIn() {
   const { user } = useAuthStore();
-  const [state, setState] = useState<CheckInState>('ready');
-  const [streakDays] = useState(7);
-  const [currentTime, setCurrentTime] = useState('7:23 AM');
+  const { checkIns, addCheckIn, adminSettings } = useDataStore();
 
-  const weekDays = [
-    { day: 'M', done: true },
-    { day: 'T', done: true },
-    { day: 'W', done: true },
-    { day: 'T', done: true },
-    { day: 'F', done: false, isToday: true },
-    { day: 'S', done: false },
-    { day: 'S', done: false },
-  ];
+  const currentMember = user || {
+    id: 'm1',
+    name: 'Arjun Mehta',
+    email: 'arjun@example.com',
+  };
 
-  const stats = {
-    thisWeek: 3,
-    thisMonth: 12,
-    total: 47,
+  const gymLat = adminSettings?.gymLat || 17.405433;
+  const gymLng = adminSettings?.gymLng || 78.569921;
+  const geofenceRadius = adminSettings?.geofenceRadius || 100;
+  const gymName = adminSettings?.gymName || 'FitZone Gym';
+  const gymLocation = adminSettings?.gymLocation || 'Andheri West, Mumbai';
+
+  const todayStr = new Date().toDateString();
+  const memberCheckIns = useMemo(() => {
+    return checkIns.filter(c => c.memberId === currentMember.id || c.memberName === currentMember.name);
+  }, [checkIns, currentMember]);
+
+  const existingToday = memberCheckIns.find(c => {
+    const d = new Date(c.checkedInAt);
+    return !isNaN(d.getTime()) && d.toDateString() === todayStr;
+  });
+
+  const [state, setState] = useState<'ready' | 'loading' | 'success' | 'outside_radius' | 'error'>(
+    existingToday ? 'success' : 'ready'
+  );
+  const [distanceCalculated, setDistanceCalculated] = useState<number | null>(null);
+  const [errorMessage, setErrorMessage] = useState('');
+  const [simMode, setSimMode] = useState<'real' | 'at_gym' | 'outside'>('at_gym');
+
+  // Calculate streak
+  const streakDays = useMemo(() => {
+    if (memberCheckIns.length === 0) return 0;
+    let streak = existingToday || state === 'success' ? 1 : 0;
+    let checkDate = new Date();
+    checkDate.setDate(checkDate.getDate() - 1);
+    while (true) {
+      const targetStr = checkDate.toDateString();
+      const hasRecord = memberCheckIns.some(c => new Date(c.checkedInAt).toDateString() === targetStr);
+      if (hasRecord) {
+        streak++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+    }
+    return Math.max(streak, (existingToday || state === 'success') ? 1 : 0);
+  }, [memberCheckIns, existingToday, state]);
+
+  const performCheckInAtCoords = (userLat: number, userLng: number) => {
+    const distance = calculateDistanceInMeters(userLat, userLng, gymLat, gymLng);
+    setDistanceCalculated(distance);
+
+    if (distance <= geofenceRadius) {
+      const record = {
+        id: `ci-${Date.now()}`,
+        memberId: currentMember.id,
+        memberName: currentMember.name,
+        latitude: userLat,
+        longitude: userLng,
+        checkedInAt: new Date().toISOString(),
+        date: new Date().toISOString().split('T')[0],
+      };
+      addCheckIn(record);
+      setState('success');
+    } else {
+      setState('outside_radius');
+      setErrorMessage(`You are ${distance}m away. You must be within ${geofenceRadius}m of ${gymName} to check in.`);
+    }
   };
 
   const handleCheckIn = () => {
     setState('loading');
-    setTimeout(() => {
-      setState('success');
-      setCurrentTime(new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }));
-    }, 2000);
-  };
+    setErrorMessage('');
 
-  const handleTryAgain = () => {
-    setState('loading');
-    setTimeout(() => {
-      setState('success');
-    }, 2000);
+    if (simMode === 'at_gym') {
+      setTimeout(() => {
+        // ~25 meters from gym
+        performCheckInAtCoords(gymLat + 0.0001, gymLng + 0.0001);
+      }, 1000);
+      return;
+    }
+
+    if (simMode === 'outside') {
+      setTimeout(() => {
+        // ~850 meters away
+        performCheckInAtCoords(gymLat + 0.0075, gymLng + 0.0075);
+      }, 1000);
+      return;
+    }
+
+    // Real device GPS
+    if (!navigator.geolocation) {
+      setState('error');
+      setErrorMessage('Geolocation is not supported by your browser. Please try simulation mode.');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        performCheckInAtCoords(pos.coords.latitude, pos.coords.longitude);
+      },
+      (err) => {
+        setState('error');
+        setErrorMessage(err.message || 'Location permission denied. Please grant permission or use demo simulation.');
+      },
+      { timeout: 10000, enableHighAccuracy: true }
+    );
   };
 
   return (
-    <div className="bg-[#F4F6F8] font-body text-[#191C1E] min-h-screen">
-      {/* Header Section */}
-      <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="material-symbols-outlined text-[#1A3C5E]" style={{ fontVariationSettings: "'FILL' 1" }}>location_on</span>
-            <span className="text-[#1A3C5E] font-bold text-sm tracking-widest uppercase">The Kinetic Sanctuary • HQ</span>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#E87722] text-xl">location_on</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-[#1A3C5E]">{gymName} • Main Facility</span>
           </div>
-          <h1 className="text-4xl font-extrabold text-[#1A3C5E] tracking-tight">Gym Check-In</h1>
+          <h1 className="text-3xl font-black text-[#1A3C5E] tracking-tight">Geo-Verified Gym Check-In</h1>
+          <p className="text-xs text-slate-500 mt-1">{gymLocation} (Within {geofenceRadius}m geofence)</p>
         </div>
-        <div className="flex items-center gap-3 bg-white px-5 py-2.5 rounded-full shadow-[0_4px_12px_rgba(26,60,94,0.05)] border border-[#C3C6CF]/10">
-          <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-          <span className="text-sm font-semibold text-[#43474E]">System Online</span>
+
+        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-xl border border-emerald-200 text-xs font-bold self-start">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          Geofence Active ({geofenceRadius}m)
         </div>
-      </header>
+      </div>
 
       {/* Streak Banner */}
-      <section className="mb-12">
-        <div className="bg-white rounded-3xl p-8 shadow-[0_12px_40px_rgba(26,60,94,0.06)] border border-white/50">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="space-y-1">
-              <span className="text-[#E87722] text-4xl font-black block">🔥 {streakDays}-Day Streak!</span>
-              <p className="text-[#43474E] font-medium">You're on fire! {10 - streakDays} more days for your reward.</p>
-            </div>
-            <div className="flex gap-3 overflow-x-auto pb-2 md:pb-0">
-              {weekDays.map((data, i) => (
-                <div key={i} className="flex flex-col items-center gap-2 min-w-[50px]">
-                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shadow-md ${
-                    data.done 
-                      ? 'bg-[#E87722] text-white' 
-                      : data.isToday 
-                        ? 'border-4 border-[#E87722] text-[#E87722] bg-white' 
-                        : 'bg-[#F2F4F6] text-[#43474E]/40'
-                  }`}>
-                    {data.done ? (
-                      <span className="material-symbols-outlined">check</span>
-                    ) : (
-                      <span className="font-black">{data.day}</span>
-                    )}
-                  </div>
-                  <span className={`text-[10px] font-bold uppercase tracking-widest ${data.isToday ? 'text-[#E87722]' : 'text-[#43474E]/60'}`}>{data.day}</span>
-                </div>
-              ))}
-            </div>
+      <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-4">
+          <div className="w-14 h-14 rounded-2xl bg-orange-100 text-[#E87722] flex items-center justify-center flex-shrink-0">
+            <span className="material-symbols-outlined text-3xl font-bold" style={{ fontVariationSettings: "'FILL' 1" }}>local_fire_department</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-black text-[#1A3C5E]">{streakDays}-Day Attendance Streak! 🔥</h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              {existingToday || state === 'success'
+                ? "You've successfully recorded your attendance for today."
+                : 'Check in today to maintain your momentum and build training consistency.'}
+            </p>
           </div>
         </div>
-      </section>
 
-      {/* Interactive States Bento Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-        {/* STATE 1: READY */}
-        {state === 'ready' && (
-          <div className="bg-white p-8 rounded-3xl flex flex-col items-center justify-center text-center space-y-6 shadow-md hover:shadow-xl transition-all duration-300 border border-white">
-            <button 
-              onClick={handleCheckIn}
-              className="w-24 h-24 rounded-full bg-gradient-to-br from-[#E87722] to-[#FA8530] flex items-center justify-center shadow-[0_12px_24px_rgba(232,119,34,0.3)] active:scale-95 transition-transform cursor-pointer group"
+        <Link
+          to="/attendance"
+          className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#1A3C5E] rounded-xl text-xs font-bold transition-colors self-start sm:self-auto"
+        >
+          View Calendar History
+        </Link>
+      </div>
+
+      {/* Simulation / GPS Test Selector */}
+      <div className="bg-slate-50 rounded-2xl p-4 border border-slate-200/80">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Location Source Mode:</span>
+            <p className="text-[11px] text-slate-400">Select simulated location or your actual GPS for testing</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => { setSimMode('at_gym'); if (!existingToday) setState('ready'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                simMode === 'at_gym'
+                  ? 'bg-[#1A3C5E] text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+              }`}
             >
-              <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>pin_drop</span>
+              Simulate At Gym (Pass)
             </button>
-            <div className="space-y-2">
-              <h3 className="font-bold text-xl text-[#1A3C5E]">Check In</h3>
-              <div className="flex items-center gap-2 justify-center text-[#43474E]/70">
-                <span className="material-symbols-outlined text-sm">info</span>
-                <span className="text-sm font-medium">Location not yet detected</span>
-              </div>
+            <button
+              type="button"
+              onClick={() => { setSimMode('outside'); if (!existingToday) setState('ready'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                simMode === 'outside'
+                  ? 'bg-amber-600 text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              Simulate &gt;100m (Fail)
+            </button>
+            <button
+              type="button"
+              onClick={() => { setSimMode('real'); if (!existingToday) setState('ready'); }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                simMode === 'real'
+                  ? 'bg-[#E87722] text-white shadow-sm'
+                  : 'bg-white text-slate-600 border border-slate-200 hover:bg-slate-100'
+              }`}
+            >
+              Real Device GPS
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Interactive Check-In Card */}
+      <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-slate-200/80 text-center flex flex-col items-center justify-center">
+        {/* STATE 1: ALREADY CHECKED IN OR JUST SUCCEEDED */}
+        {(existingToday || state === 'success') && (
+          <div className="space-y-6 max-w-md">
+            <div className="w-24 h-24 bg-emerald-100 text-[#1E7A45] rounded-full flex items-center justify-center mx-auto shadow-md">
+              <span className="material-symbols-outlined text-5xl font-bold">task_alt</span>
+            </div>
+            <div>
+              <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+                Verified Check-In
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#1A3C5E]">You Are Checked In Today!</h2>
+              <p className="text-slate-500 text-sm mt-2">
+                Logged at{' '}
+                <span className="font-bold text-slate-800">
+                  {new Date(existingToday?.checkedInAt || Date.now()).toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  })}
+                </span>{' '}
+                at {gymName}.
+              </p>
+              {distanceCalculated !== null && (
+                <p className="text-xs text-emerald-600 font-semibold mt-1">Verified within {distanceCalculated}m of gym.</p>
+              )}
+            </div>
+
+            <div className="pt-4 flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                to="/dashboard"
+                className="px-6 py-3 bg-[#1A3C5E] hover:bg-[#15324E] text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+              >
+                Back to Dashboard
+              </Link>
+              <Link
+                to="/attendance"
+                className="px-6 py-3 border border-slate-200 text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl transition-all"
+              >
+                View Attendance Record
+              </Link>
             </div>
           </div>
         )}
 
         {/* STATE 2: LOADING */}
-        {state === 'loading' && (
-          <div className="bg-white p-8 rounded-3xl flex flex-col items-center justify-center text-center space-y-6 shadow-md opacity-70">
-            <div className="w-24 h-24 rounded-full bg-[#E87722]/50 flex items-center justify-center relative">
-              <div className="absolute inset-0 border-4 border-white/20 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
-              <span className="material-symbols-outlined text-white text-4xl">location_searching</span>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-bold text-xl text-[#1A3C5E]">Verifying</h3>
-              <p className="text-sm font-medium text-[#43474E]">Detecting your location...</p>
+        {!existingToday && state === 'loading' && (
+          <div className="space-y-6 max-w-md py-6">
+            <div className="w-20 h-20 border-4 border-slate-200 border-t-[#E87722] rounded-full animate-spin mx-auto" />
+            <div>
+              <h2 className="text-2xl font-bold text-[#1A3C5E]">Verifying Location Coordinates...</h2>
+              <p className="text-slate-500 text-sm mt-1">
+                Comparing coordinates against {gymName} geofence ({geofenceRadius}m radius)...
+              </p>
             </div>
           </div>
         )}
 
-        {/* STATE 3: SUCCESS */}
-        {state === 'success' && (
-          <div className="bg-white p-8 rounded-3xl flex flex-col items-center justify-center text-center space-y-6 shadow-md border-2 border-emerald-500/20">
-            <div className="w-24 h-24 rounded-full bg-emerald-500 flex items-center justify-center shadow-[0_12px_24px_rgba(16,185,129,0.3)]">
-              <span className="material-symbols-outlined text-white text-4xl" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
-            </div>
-            <div className="space-y-1">
-              <h3 className="font-bold text-xl text-[#1A3C5E]">Checked In! ✓</h3>
-              <div className="bg-[#F2F4F6] px-4 py-1.5 rounded-full inline-block">
-                <span className="text-sm font-bold text-[#1A3C5E]">Today, {currentTime}</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STATE 4: OUTSIDE RADIUS */}
-        {state === 'outside_radius' && (
-          <div className="bg-[#FFF8F4] p-6 rounded-3xl col-span-1 md:col-span-2 shadow-md border border-[#E87722]/10 overflow-hidden flex flex-col md:flex-row gap-6">
-            <div className="flex-1 space-y-4">
-              <div className="w-12 h-12 rounded-2xl bg-[#E87722]/11 flex items-center justify-center text-[#E87722]">
-                <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>warning</span>
-              </div>
-              <div>
-                <h3 className="font-black text-2xl text-[#1A3C5E] leading-tight">You're too far from the gym</h3>
-                <p className="text-[#43474E] mt-2 max-w-xs">Move within 50 meters of the Sanctuary entrance to verify your session.</p>
-              </div>
-              <button onClick={handleTryAgain} className="bg-[#1A3C5E] text-white px-6 py-3 rounded-xl font-bold text-sm tracking-wide">TRY AGAIN</button>
-            </div>
-            <div className="flex-1 h-48 md:h-auto rounded-2xl relative bg-slate-200 overflow-hidden">
-              <img className="w-full h-full object-cover grayscale opacity-80" alt="Map view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCXk_3GChwx9GJb9NmEC57ULJZIcF4zE2xHqK_sZZpl3dvhJtmXKZ6oTz6Kb4lJIJXIKrWRR_zrqY2z7Goi-qETmJC9Sov8yUj2PE7w60MiyzzuWIW-25LfhCkwj7v5jENkQOS316Ic-HXkb-FWmXQIfG5W1Y1xB6l7vIF7_WmfJe7F84sa6VSh0Qc-qNscbsUjgdXNhwNxpXVbsuAcj3ssefgMvJNODeE8OWQR9COuDAozEiqYNe9tlFqOv14XypV2kli68mQGfC0" />
-              <div className="absolute inset-0 bg-[#1A3C5E]/10 pointer-events-none"></div>
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-lg animate-pulse">
-                  <div className="w-4 h-4 bg-orange-500 rounded-full"></div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* STATE 5: PERMISSION DENIED */}
-        {state === 'permission_denied' && (
-          <div className="bg-[#FFFEEB] p-8 rounded-3xl flex flex-col items-center justify-center text-center space-y-6 shadow-md border border-yellow-200">
-            <div className="w-20 h-20 rounded-full bg-yellow-100 flex items-center justify-center text-yellow-700">
-              <span className="material-symbols-outlined text-4xl">location_off</span>
-            </div>
-            <div className="space-y-2">
-              <h3 className="font-bold text-xl text-[#1A3C5E]">Location access required</h3>
-              <p className="text-sm text-[#43474E] leading-relaxed px-4">Please enable GPS to allow FitSync Pro to verify your check-in.</p>
-            </div>
-            <button className="text-yellow-800 font-bold text-sm underline decoration-2 underline-offset-4">Open Settings</button>
-          </div>
-        )}
-      </section>
-
-      {/* Attendance Stats Section */}
-      <section>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-white/50 flex items-center gap-4 group hover:bg-[#F2F4F6] transition-colors">
-            <div className="w-14 h-14 rounded-2xl bg-[#F2F4F6] flex items-center justify-center text-[#1A3C5E] group-hover:bg-white transition-colors">
-              <span className="material-symbols-outlined">calendar_view_week</span>
+        {/* STATE 3: OUTSIDE RADIUS */}
+        {!existingToday && state === 'outside_radius' && (
+          <div className="space-y-6 max-w-md">
+            <div className="w-24 h-24 bg-red-100 text-[#C0392B] rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <span className="material-symbols-outlined text-5xl">location_off</span>
             </div>
             <div>
-              <span className="text-[10px] font-black text-[#43474E]/60 uppercase tracking-widest block">This Week</span>
-              <span className="text-xl font-black text-[#1A3C5E]">{stats.thisWeek} sessions</span>
+              <span className="inline-block px-3 py-1 bg-red-100 text-red-800 text-xs font-bold rounded-full uppercase tracking-wider mb-2">
+                Outside Geofence Radius
+              </span>
+              <h2 className="text-2xl font-black text-[#1A3C5E]">Check-In Rejected</h2>
+              <p className="text-slate-600 text-sm mt-2">{errorMessage}</p>
             </div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-white/50 flex items-center gap-4 group hover:bg-[#F2F4F6] transition-colors">
-            <div className="w-14 h-14 rounded-2xl bg-[#F2F4F6] flex items-center justify-center text-[#1A3C5E] group-hover:bg-white transition-colors">
-              <span className="material-symbols-outlined">calendar_month</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-[#43474E]/60 uppercase tracking-widest block">This Month</span>
-              <span className="text-xl font-black text-[#1A3C5E]">{stats.thisMonth} sessions</span>
-            </div>
-          </div>
-          <div className="bg-white p-6 rounded-3xl shadow-sm border border-white/50 flex items-center gap-4 group hover:bg-[#F2F4F6] transition-colors">
-            <div className="w-14 h-14 rounded-2xl bg-[#F2F4F6] flex items-center justify-center text-[#E87722] group-hover:bg-white transition-colors">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: "'FILL' 1" }}>stars</span>
-            </div>
-            <div>
-              <span className="text-[10px] font-black text-[#43474E]/60 uppercase tracking-widest block">Total</span>
-              <span className="text-xl font-black text-[#1A3C5E]">{stats.total} sessions</span>
-            </div>
-          </div>
-        </div>
-      </section>
 
-      {/* Floating Decor */}
-      <div className="fixed top-0 right-0 -z-10 pointer-events-none w-[500px] h-[500px] bg-blue-100/30 rounded-full blur-[100px]"></div>
-      <div className="fixed bottom-0 left-0 -z-10 pointer-events-none w-[300px] h-[300px] bg-[#E87722]/5 rounded-full blur-[80px]"></div>
+            <div className="pt-2 flex flex-col sm:flex-row gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => { setSimMode('at_gym'); setState('ready'); }}
+                className="px-6 py-3 bg-[#E87722] hover:bg-[#D06A1C] text-white font-bold text-xs rounded-xl shadow-sm transition-all"
+              >
+                Switch to At-Gym Simulation & Retry
+              </button>
+              <button
+                type="button"
+                onClick={handleCheckIn}
+                className="px-6 py-3 border border-slate-300 text-slate-700 hover:bg-slate-50 font-bold text-xs rounded-xl transition-all"
+              >
+                Retry Check-In
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STATE 4: ERROR / PERMISSION DENIED */}
+        {!existingToday && state === 'error' && (
+          <div className="space-y-6 max-w-md">
+            <div className="w-24 h-24 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto shadow-sm">
+              <span className="material-symbols-outlined text-5xl">warning</span>
+            </div>
+            <div>
+              <h2 className="text-2xl font-black text-[#1A3C5E]">Location Error</h2>
+              <p className="text-slate-600 text-sm mt-2">{errorMessage}</p>
+            </div>
+
+            <div className="pt-2 flex gap-3 justify-center">
+              <button
+                type="button"
+                onClick={() => { setSimMode('at_gym'); setState('ready'); }}
+                className="px-6 py-3 bg-[#1A3C5E] text-white font-bold text-xs rounded-xl shadow-sm hover:bg-[#15324E] transition-all"
+              >
+                Try At-Gym Simulation
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STATE 5: READY TO CHECK IN */}
+        {!existingToday && state === 'ready' && (
+          <div className="space-y-6 max-w-md">
+            <div className="relative">
+              <div className="w-28 h-28 bg-[#E87722] text-white rounded-full flex items-center justify-center mx-auto shadow-xl cursor-pointer hover:scale-105 active:scale-95 transition-all">
+                <span className="material-symbols-outlined text-5xl">touch_app</span>
+              </div>
+            </div>
+
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-black text-[#1A3C5E]">Ready to Check In</h2>
+              <p className="text-slate-500 text-sm mt-1">
+                Click below to verify your proximity and log your daily gym attendance.
+              </p>
+            </div>
+
+            <button
+              onClick={handleCheckIn}
+              className="w-full py-4 bg-[#E87722] hover:bg-[#D06A1C] text-white font-bold text-base rounded-2xl shadow-lg shadow-orange-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
+            >
+              <span className="material-symbols-outlined text-xl">location_on</span>
+              Check In at {gymName}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

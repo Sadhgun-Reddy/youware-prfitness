@@ -1,251 +1,205 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '../../store/useAuthStore';
+import { useDataStore } from '../../store/useDataStore';
 
 export default function DietPlan() {
-  const [expandedMeals, setExpandedMeals] = useState<Set<string>>(new Set(['breakfast']));
+  const { user } = useAuthStore();
+  const { dietPlans } = useDataStore();
 
-  const toggleMeal = (type: string) => {
-    setExpandedMeals(prev => {
-      const next = new Set(prev);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
-      return next;
-    });
+  const currentMember = user || {
+    id: 'm1',
+    name: 'Arjun Mehta',
+    planType: 'personal_training' as const,
   };
 
-  const meals = [
-    {
-      type: 'breakfast',
-      emoji: '🌅',
-      name: 'Breakfast',
-      time: '7:00 – 8:00 AM',
-      calories: 450,
-      items: [
-        { name: 'Rolled Oats', portion: '80g', category: 'Cereal Base' },
-        { name: 'Banana', portion: '1 medium', category: 'Fruit Portion' },
-        { name: 'Peanut butter', portion: '1 tbsp', category: 'Healthy Fats' },
-      ],
-    },
-    {
-      type: 'mid_morning',
-      emoji: '🥜',
-      name: 'Mid-Morning Snack',
-      time: '10:30 – 11:00 AM',
-      calories: 210,
-    },
-    {
-      type: 'lunch',
-      emoji: '🥗',
-      name: 'Lunch',
-      time: '1:00 – 2:00 PM',
-      calories: 580,
-    },
-    {
-      type: 'afternoon_snack',
-      emoji: '🍎',
-      name: 'Afternoon Snack',
-      time: '4:30 – 5:00 PM',
-      calories: 150,
-    },
-    {
-      type: 'dinner',
-      emoji: '🍽️',
-      name: 'Dinner',
-      time: '7:30 – 8:30 PM',
-      calories: 490,
-    },
-  ];
+  const isPT = currentMember.planType === 'personal_training';
 
-  const macros = [
-    { name: 'Protein', current: 160, target: 180, color: 'bg-[#1A3C5E]', width: '88%' },
-    { name: 'Carbohydrates', current: 210, target: 250, color: 'bg-[#E87722]', width: '84%' },
-    { name: 'Fats', current: 55, target: 70, color: 'bg-tertiary-fixed-dim', width: '78%' },
-  ];
+  // Read member diet plan
+  const plan = useMemo(() => {
+    return dietPlans.find(p => p.memberId === currentMember.id) || dietPlans[0];
+  }, [dietPlans, currentMember]);
 
-  return (
-    <div>
-      <div className="mt-6 flex items-center bg-[#E87722] text-white px-6 py-3 rounded-lg shadow-md">
-        <span className="text-sm font-bold flex items-center">
-          <span className="material-symbols-outlined text-base mr-2">stars</span>
-          Your personalised meal plan from your trainer
-        </span>
-      </div>
+  const [expandedMeal, setExpandedMeal] = useState<string | null>(null);
 
-      <div className="mt-8 mb-8">
-        <h2 className="text-4xl font-black text-primary tracking-tight leading-tight">My Diet Plan</h2>
-        <p className="text-on-surface-variant mt-1 font-medium flex items-center">
-          Assigned by Ravi S. <span className="mx-2 opacity-30 text-xl">•</span> Last updated 10 Jun 2025
-        </p>
-      </div>
+  // Compute total calories & macros across all meals
+  const summary = useMemo(() => {
+    let totalCalories = 0;
+    let totalProtein = 0;
+    if (!plan) return { totalCalories: 2200, totalProtein: 160 };
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          <div className="neo-card bg-surface-container-lowest rounded-xl p-8 border-l-[6px] border-[#E87722] relative overflow-hidden">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center mb-4 text-[#1A3C5E]">
-                  <span className="material-symbols-outlined mr-2 bg-tertiary-fixed p-1.5 rounded-lg text-lg">description</span>
-                  <h3 className="font-bold text-lg uppercase tracking-wider">Trainer's Directives</h3>
-                </div>
-                <ul className="space-y-4 text-on-surface text-lg leading-relaxed font-medium">
-                  <li className="flex items-start">
-                    <span className="w-2 h-2 rounded-full bg-[#E87722] mt-2.5 mr-3 flex-shrink-0"></span>
-                    Avoid processed carbohydrates after 6 PM.
-                  </li>
-                  <li className="flex items-start">
-                    <span className="w-2 h-2 rounded-full bg-[#E87722] mt-2.5 mr-3 flex-shrink-0"></span>
-                    Drink at least 3 litres of water daily.
-                  </li>
-                  <li className="flex items-start">
-                    <span className="w-2 h-2 rounded-full bg-[#E87722] mt-2.5 mr-3 flex-shrink-0"></span>
-                    Eat within 30 minutes of waking up.
-                  </li>
-                  <li className="flex items-start">
-                    <span className="w-2 h-2 rounded-full bg-[#E87722] mt-2.5 mr-3 flex-shrink-0"></span>
-                    Focus on whole foods and lean protein sources.
-                  </li>
-                </ul>
-              </div>
-              <div className="hidden sm:flex flex-col items-center ml-8 p-4 bg-surface-container rounded-2xl">
-                <img
-                  alt="Ravi S."
-                  className="w-16 h-16 rounded-full object-cover border-4 border-white shadow-md mb-3"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqo_w4fZo8W8VBgbyg2df6IF61JsO40O5o2DwhGAjpW01-oqicclyRbDOzSRrdtaeaPciiW76LQlYXCMjmXwDJJKsF8_SanlzrrCDjZQm42R0tWjL8aMoHc-agOD7p7fcrMgllk3olw416rcC4jbSqN3ilp73HEHLoonOnUip9nZsMUjNZ3byPXFSX_S9deM1Fud4sCsWs7yaXX8dReG6EZOAKrDwuQkpFWYKKNjzNu2pW9Wihb0EQo98HMEGXGqfpNVaxWYxqkEA"
-                />
-                <p className="text-xs font-black text-primary uppercase text-center tracking-tighter leading-tight">
-                  Ravi S.<br /><span className="text-[10px] font-medium opacity-60">TRAINER</span>
-                </p>
-              </div>
-            </div>
-          </div>
+    plan.meals.forEach(m => {
+      m.items.forEach(it => {
+        totalCalories += it.calories || 150;
+        totalProtein += it.protein || 15;
+      });
+    });
 
-          <div className="space-y-4">
-            <h3 className="text-2xl font-bold text-primary mb-6 flex items-center">
-              Your Daily Meal Plan
-              <span className="ml-4 h-[2px] flex-1 bg-surface-container-high rounded-full"></span>
-            </h3>
+    return {
+      totalCalories: totalCalories || 2250,
+      totalProtein: totalProtein || 165,
+    };
+  }, [plan]);
 
-            {meals.map(meal => {
-              const isExpanded = expandedMeals.has(meal.type);
-              const hasDetails = 'items' in meal && meal.items;
-
-              return (
-                <div key={meal.type}>
-                  {meal.type === 'breakfast' ? (
-                    <div className="neo-card bg-surface-container-lowest rounded-2xl overflow-hidden border border-outline-variant/10">
-                      <div className="bg-primary px-8 py-5 flex items-center justify-between">
-                        <div className="flex items-center text-white">
-                          <span className="text-2xl mr-3">{meal.emoji}</span>
-                          <div>
-                            <h4 className="font-bold text-lg">{meal.name}</h4>
-                            <p className="text-xs text-on-primary-container font-medium opacity-80 uppercase tracking-widest">{meal.time}</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <span className="text-white/90 text-sm font-bold bg-white/10 px-3 py-1 rounded-full">{meal.calories} CAL</span>
-                        </div>
-                      </div>
-                      {hasDetails && (
-                        <div className="p-8">
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            {meal.items?.map((item, i) => (
-                              <div key={i} className="bg-surface-container-low p-4 rounded-xl border border-outline-variant/5">
-                                <p className="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest mb-1">{item.category}</p>
-                                <p className="font-black text-primary text-xl tracking-tight">{item.name}</p>
-                                <p className="text-sm text-secondary font-bold">{item.portion}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <div
-                      onClick={() => toggleMeal(meal.type)}
-                      className="group bg-surface-container-low/50 hover:bg-white rounded-2xl p-6 transition-all duration-300 flex items-center justify-between border border-transparent hover:border-outline-variant/20 hover:shadow-lg cursor-pointer"
-                    >
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-4 group-hover:scale-110 transition-transform">{meal.emoji}</span>
-                        <div>
-                          <h4 className="font-bold text-[#1A3C5E]">{meal.name}</h4>
-                          <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest">{meal.time}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-4">
-                        <span className="text-secondary text-xs font-bold px-3 py-1 bg-surface-container rounded-full group-hover:bg-tertiary-fixed group-hover:text-on-tertiary-fixed transition-colors">{meal.calories} CAL</span>
-                        <span className="material-symbols-outlined text-outline">add_circle</span>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="bg-[#1A3C5E] rounded-2xl p-8 relative overflow-hidden group shadow-xl">
-            <div className="absolute -right-10 -bottom-10 opacity-10 group-hover:scale-110 transition-transform duration-700">
-              <span className="material-symbols-outlined text-[200px] text-white" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-            </div>
-            <div className="relative z-10 flex items-center">
-              <div className="bg-white/10 p-4 rounded-full mr-6">
-                <span className="material-symbols-outlined text-4xl text-[#E87722]" style={{ fontVariationSettings: "'FILL' 1" }}>water_drop</span>
-              </div>
-              <div>
-                <h4 className="text-white text-2xl font-black tracking-tight mb-2">Daily Water Target: 3 litres</h4>
-                <p className="text-white/70 font-medium">Track your hydration alongside your meals to maintain peak metabolic function.</p>
-              </div>
-            </div>
-          </div>
+  if (!isPT) {
+    return (
+      <div className="max-w-3xl mx-auto py-12 text-center space-y-6">
+        <div className="w-20 h-20 bg-orange-100 text-[#E87722] rounded-3xl flex items-center justify-center mx-auto shadow-md">
+          <span className="material-symbols-outlined text-4xl">restaurant</span>
+        </div>
+        <div>
+          <span className="px-3 py-1 bg-orange-100 text-[#E87722] text-xs font-bold rounded-full uppercase tracking-wider mb-2 inline-block">
+            Personal Training Feature
+          </span>
+          <h1 className="text-3xl font-black text-[#1A3C5E]">Customised Diet & Nutrition Plan</h1>
+          <p className="text-slate-600 text-sm max-w-md mx-auto mt-2">
+            Nutritional plans calculated to match your body composition goals are exclusively provided under the <span className="font-bold text-slate-800">Personal Training Plan</span>.
+          </p>
         </div>
 
-        <div className="lg:col-span-4 space-y-8">
-          <div className="neo-card bg-surface-container-lowest rounded-2xl p-8">
-            <h4 className="font-black text-primary text-xl mb-6 flex items-center">
-              Daily Macros
-              <span className="material-symbols-outlined ml-2 text-[#E87722]">pie_chart</span>
-            </h4>
-            <div className="space-y-6">
-              {macros.map(macro => (
-                <div key={macro.name}>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-xs font-black uppercase tracking-widest text-[#1A3C5E]">{macro.name}</span>
-                    <span className="text-xs font-bold text-secondary">{macro.current}g / {macro.target}g</span>
+        <div className="pt-2">
+          <Link
+            to="/register/plan-select"
+            className="px-8 py-3.5 bg-[#E87722] hover:bg-[#D06A1C] text-white rounded-xl font-bold text-sm shadow-md transition-all inline-flex items-center gap-2 active:scale-95"
+          >
+            <span>Upgrade to Personal Training (₹3,500/mo)</span>
+            <span className="material-symbols-outlined text-base">arrow_forward</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-orange-100 text-[#E87722]">
+              <span className="material-symbols-outlined text-xs">verified</span>
+              Personalised Nutrition Plan
+            </span>
+            <span className="text-xs text-slate-400">Assigned by Coach Ravi Sharma</span>
+          </div>
+          <h1 className="text-3xl font-black text-[#1A3C5E] tracking-tight">My Diet & Meal Plan</h1>
+          <p className="text-xs text-slate-500 mt-1">
+            Tailored for lean muscle hypertrophy and fat loss • Last updated {plan ? new Date(plan.updatedAt || plan.assignedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Recent'}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2 bg-emerald-50 text-emerald-800 px-4 py-2 rounded-xl border border-emerald-200 text-xs font-bold self-start sm:self-auto">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>
+          Target: {summary.totalCalories} kcal / day
+        </div>
+      </div>
+
+      {/* Daily Macro Targets Card */}
+      <div className="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200/80">
+        <h3 className="text-sm font-bold uppercase tracking-wider text-slate-400 mb-4">Daily Macronutrient Targets</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="p-4 bg-blue-50/70 rounded-xl border border-blue-100">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs font-bold text-[#1A3C5E] uppercase tracking-wider">Protein Target</span>
+              <span className="text-xs font-bold text-[#1A3C5E]">~30%</span>
+            </div>
+            <p className="text-3xl font-black text-[#1A3C5E]">160g</p>
+            <p className="text-[11px] text-slate-500 mt-1">Lean meat, eggs, whey, paneer, sprouts</p>
+          </div>
+
+          <div className="p-4 bg-orange-50/70 rounded-xl border border-orange-100">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs font-bold text-[#E87722] uppercase tracking-wider">Carbohydrates</span>
+              <span className="text-xs font-bold text-[#E87722]">~45%</span>
+            </div>
+            <p className="text-3xl font-black text-[#E87722]">210g</p>
+            <p className="text-[11px] text-slate-500 mt-1">Oats, brown rice, sweet potatoes, rotis</p>
+          </div>
+
+          <div className="p-4 bg-amber-50/70 rounded-xl border border-amber-100">
+            <div className="flex justify-between items-start mb-2">
+              <span className="text-xs font-bold text-amber-800 uppercase tracking-wider">Healthy Fats</span>
+              <span className="text-xs font-bold text-amber-800">~25%</span>
+            </div>
+            <p className="text-3xl font-black text-amber-900">60g</p>
+            <p className="text-[11px] text-slate-500 mt-1">Almonds, peanut butter, olive oil, seeds</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Trainer Directives (PRD F-013, Screen 3) */}
+      <div className="bg-orange-50/70 rounded-2xl p-6 border-l-4 border-[#E87722] shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <span className="material-symbols-outlined text-[#E87722]">format_quote</span>
+          <h3 className="text-sm font-black uppercase tracking-wider text-[#1A3C5E]">Coach Ravi Sharma's Directives</h3>
+        </div>
+        <p className="text-xs sm:text-sm text-slate-800 leading-relaxed italic mb-3">
+          "{plan?.trainerNotes || 'Maintain 3.5 litres of water daily. Ensure post-workout shake is taken within 45 minutes of training. Limit sodium intake after 8:00 PM.'}"
+        </p>
+        <div className="flex items-center gap-4 text-xs font-semibold text-slate-500">
+          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm text-[#1E7A45]">check</span> Hydration: 3.5L/day</span>
+          <span className="flex items-center gap-1"><span className="material-symbols-outlined text-sm text-[#1E7A45]">check</span> No refined sugar</span>
+        </div>
+      </div>
+
+      {/* Structured Meals Breakdown */}
+      <div className="space-y-4">
+        <h3 className="text-lg font-black text-[#1A3C5E]">Structured Daily Meals</h3>
+
+        <div className="space-y-3">
+          {(plan?.meals || []).map((meal, idx) => {
+            const isExpanded = expandedMeal === meal.type || expandedMeal === null;
+
+            return (
+              <div
+                key={idx}
+                className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden"
+              >
+                <div
+                  onClick={() => setExpandedMeal(prev => prev === meal.type ? '' : meal.type)}
+                  className="p-5 flex items-center justify-between cursor-pointer hover:bg-slate-50/70 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl bg-orange-100 text-[#E87722] flex items-center justify-center font-bold text-sm">
+                      {idx + 1}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-[#1A3C5E] text-base">{meal.name}</h4>
+                      <p className="text-xs text-slate-400">{meal.items.length} items prescribed</p>
+                    </div>
                   </div>
-                  <div className="w-full bg-surface-container-high h-3 rounded-full overflow-hidden">
-                    <div className={`${macro.color} h-full ${macro.width} rounded-full`}></div>
-                  </div>
+
+                  <span className="text-xs font-bold text-slate-400 capitalize">
+                    {meal.type.replace('_', ' ')}
+                  </span>
                 </div>
-              ))}
-            </div>
-          </div>
 
-          <div className="bg-surface-container rounded-2xl p-8 border border-white">
-            <h4 className="font-bold text-primary mb-4 flex items-center uppercase tracking-widest text-xs">
-              <span className="material-symbols-outlined text-lg mr-2 text-[#E87722]">lightbulb</span>
-              Pro Tip
-            </h4>
-            <p className="text-on-surface-variant font-medium leading-relaxed italic">
-              "The timing of your breakfast is crucial for resetting your circadian rhythm. Pairing protein with fiber-rich oats ensures sustained energy until your snack."
-            </p>
-            <div className="mt-6 flex items-center">
-              <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] text-white font-bold mr-3">RS</div>
-              <span className="text-xs font-bold text-primary">From Coach Ravi</span>
-            </div>
-          </div>
-
-          <div className="rounded-2xl overflow-hidden shadow-2xl relative h-64 group">
-            <img
-              alt="Healthy supplements"
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuBdDfk_gJVy9tvlaTn5sd4q8wofoKaqEtCiSxrKKRpZtNhBahKipOrBkTl9MIVGa0eJ7VSxtK1asQOKqCm8aIqQmWW3aM-8I8ziGhnEoXropVcxG_bY8GwD7kENqBOjCwtL7Z1rQD2zgfJiN1qzpxhQeu-bfP9zU1FLSvCtD8QwXSihuTBYogUJG38TgDaN4hu9Mwc2FOWD1GYiWTs4qugG10XnousRQS7vERf9XXcVFzCRyUR6FEtmPM3AF7YGo-zgUHQiictNRs8"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#1A3C5E] to-transparent flex flex-col justify-end p-6">
-              <p className="text-white/60 text-[10px] font-bold uppercase tracking-widest">Resource</p>
-              <h4 className="text-white font-black text-lg">Supplement Guide 2025</h4>
-              <button className="mt-4 text-[#E87722] text-xs font-bold uppercase tracking-widest flex items-center hover:translate-x-1 transition-transform">
-                Download PDF <span className="material-symbols-outlined ml-1 text-sm">arrow_forward</span>
-              </button>
-            </div>
-          </div>
+                {isExpanded && (
+                  <div className="px-5 pb-5 pt-1 border-t border-slate-100 space-y-2">
+                    {meal.items.map((it, itIdx) => (
+                      <div
+                        key={itIdx}
+                        className="flex items-center justify-between p-3 rounded-xl bg-slate-50 text-xs sm:text-sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#E87722]" />
+                          <span className="font-bold text-[#1A3C5E]">{it.name}</span>
+                        </div>
+                        <span className="font-semibold text-slate-600 bg-white px-2.5 py-1 rounded-lg border border-slate-200 text-xs">
+                          {it.quantity} {it.unit}
+                        </span>
+                      </div>
+                    ))}
+                    {meal.trainerNotes && (
+                      <p className="text-xs text-slate-500 italic pt-1 pl-1">
+                        Note: {meal.trainerNotes}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

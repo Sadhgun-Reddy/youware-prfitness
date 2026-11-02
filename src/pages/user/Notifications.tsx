@@ -1,247 +1,195 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { useAuthStore } from '../../store/useAuthStore';
+
+interface NotificationItem {
+  id: string;
+  type: 'progress' | 'workout' | 'attendance' | 'payment';
+  title: string;
+  content: string;
+  time: string;
+  isUnread: boolean;
+  link?: string;
+  actionText?: string;
+}
 
 export default function Notifications() {
-  const [activeFilter, setActiveFilter] = useState('all');
+  const { user } = useAuthStore();
 
-  const notifications = [
+  const [notifications, setNotifications] = useState<NotificationItem[]>([
     {
       id: '1',
-      group: 'today',
-      type: 'achievement',
-      icon: 'stars',
-      title: 'Personal Best Achievement',
-      content: "You just crushed your previous record for Deadlifts. 180kg is now your new benchmark. Share this milestone with your trainer?",
-      time: '2m ago',
+      type: 'progress',
+      title: 'Sunday Progress Window Open',
+      content: 'Today is Sunday! Submit your body weight and progress photos before 11:59 PM for Coach Ravi Sharma to review.',
+      time: '2h ago',
       isUnread: true,
-      actions: ['Share with Trainer', 'Dismiss'],
+      link: '/progress/submit',
+      actionText: 'Submit Progress',
     },
     {
       id: '2',
-      group: 'today',
       type: 'workout',
-      icon: 'fitness_center',
       title: 'Workout Plan Updated',
-      content: "Coach Marcus added 'Advanced Plyometrics' to your Thursday routine. View the new exercises and demonstration videos.",
-      time: '5h ago',
-      isUnread: false,
+      content: 'Coach Ravi Sharma updated your Thursday Chest & Triceps routine with new burnout sets.',
+      time: 'Yesterday',
+      isUnread: true,
+      link: '/plan/workout',
+      actionText: 'View Workout',
     },
     {
       id: '3',
-      group: 'thisWeek',
-      type: 'community',
-      icon: 'groups',
-      title: 'New Community Event',
-      content: "Join the 'Sunday Sunrise Yoga' session at the Kinetic Roof Garden. Limited spots available for Elite Members.",
-      time: 'Tuesday',
-      isUnread: true,
-      actions: ['Book Spot'],
+      type: 'attendance',
+      title: '7-Day Attendance Streak Achieved! 🔥',
+      content: 'Congratulations on 7 consecutive days of gym check-ins at FitZone Gym! Keep the momentum going.',
+      time: '2 days ago',
+      isUnread: false,
+      link: '/attendance',
+      actionText: 'View History',
     },
     {
       id: '4',
-      group: 'thisWeek',
       type: 'payment',
-      icon: 'payments',
-      title: 'Invoice Paid',
-      content: "Your monthly subscription for 'Platinum Sanctuary' has been processed successfully. Transaction ID: #882910.",
-      time: 'Monday',
+      title: 'Subscription Payment Confirmed',
+      content: 'Your membership payment has been confirmed via Razorpay. Your membership is active for 30 days.',
+      time: '3 days ago',
       isUnread: false,
+      link: '/dashboard/membership',
+      actionText: 'View Details',
     },
-  ];
+  ]);
 
-  const filters = [
-    { id: 'all', label: 'All' },
-    { id: 'unread', label: 'Unread' },
-    { id: 'progress', label: 'Progress' },
-    { id: 'membership', label: 'Membership' },
-    { id: 'trainer', label: 'Trainer' },
-  ];
+  const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
+  const filtered = notifications.filter(n => (filter === 'unread' ? n.isUnread : true));
   const unreadCount = notifications.filter(n => n.isUnread).length;
 
-  return (
-    <div>
-      <header className="flex justify-between items-end mb-10">
-        <div>
-          <div className="flex items-center gap-3 mb-2">
-            <h1 className="text-4xl font-black text-primary-container tracking-tight font-headline">Notifications</h1>
-            <span className="bg-accent text-white text-[11px] font-black px-2.5 py-0.5 rounded-full accent-shadow">
-              {unreadCount} UNREAD
-            </span>
-          </div>
-          <p className="text-on-surface-variant font-medium">Stay updated with your sanctuary's pulse.</p>
-        </div>
-        <button className="text-accent font-bold text-sm hover:underline underline-offset-4 decoration-accent/30 transition-all flex items-center gap-2 mb-1">
-          <span className="material-symbols-outlined text-[18px]">done_all</span>
-          Mark all as read
-        </button>
-      </header>
+  const markAllRead = () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isUnread: false })));
+  };
 
-      <div className="flex gap-3 mb-10 overflow-x-auto pb-2">
-        {filters.map(filter => (
-          <button
-            key={filter.id}
-            onClick={() => setActiveFilter(filter.id)}
-            className={`px-6 py-2 rounded-full text-xs font-bold tracking-wider uppercase transition-all ${
-              activeFilter === filter.id
-                ? 'bg-primary-container text-white'
-                : 'bg-white text-on-surface-variant border border-outline-variant/30 hover:bg-surface-container-low'
-            }`}
-          >
-            {filter.label}
-          </button>
-        ))}
+  const markItemRead = (id: string) => {
+    setNotifications(prev => prev.map(n => (n.id === id ? { ...n, isUnread: false } : n)));
+  };
+
+  return (
+    <div className="space-y-8 max-w-4xl mx-auto">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <span className="material-symbols-outlined text-[#E87722]">notifications</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Activity & Alerts</span>
+          </div>
+          <h1 className="text-3xl font-black text-[#1A3C5E] tracking-tight">Notifications</h1>
+          <p className="text-xs text-slate-500 mt-1">Gym announcements, progress reminders, and coach updates</p>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {unreadCount > 0 && (
+            <button
+              onClick={markAllRead}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-[#1A3C5E] rounded-xl text-xs font-bold transition-colors flex items-center gap-1.5"
+            >
+              <span className="material-symbols-outlined text-base">done_all</span>
+              Mark All as Read
+            </button>
+          )}
+          <div className="flex gap-1 bg-slate-100 p-1 rounded-xl">
+            <button
+              onClick={() => setFilter('all')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filter === 'all' ? 'bg-white text-[#1A3C5E] shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilter('unread')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                filter === 'unread' ? 'bg-[#E87722] text-white shadow-sm' : 'text-slate-500'
+              }`}
+            >
+              Unread ({unreadCount})
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-12 gap-8">
-        <div className="col-span-12 lg:col-span-8 space-y-10">
-          <section>
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-[11px] font-black tracking-[0.2em] text-slate-400 uppercase">Today</span>
-              <div className="h-[1px] flex-1 bg-surface-container-high"></div>
-            </div>
-            <div className="space-y-4">
-              {notifications.filter(n => n.group === 'today').map(notif => (
-                <div
-                  key={notif.id}
-                  className={`bg-white p-6 rounded-xl flex gap-5 kinetic-shadow hover:translate-x-1 transition-all ${
-                    notif.isUnread ? 'bg-primary-fixed/20 border-l-4 border-accent' : ''
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    notif.isUnread ? 'bg-white text-accent' : 'bg-surface-container-low text-primary'
-                  }`}>
-                    <span
-                      className="material-symbols-outlined text-[24px]"
-                      style={notif.isUnread ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                    >
-                      {notif.icon}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-primary-container">{notif.title}</h3>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">{notif.time}</span>
-                    </div>
-                    <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{notif.content}</p>
-                    {notif.actions && (
-                      <div className="flex gap-3">
-                        {notif.actions.map((action, i) => (
-                          <button
-                            key={i}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                              i === 0
-                                ? notif.type === 'achievement'
-                                  ? 'bg-primary-container text-white'
-                                  : 'bg-accent text-white'
-                                : 'text-primary-container bg-white hover:bg-surface-container-low'
-                            }`}
-                          >
-                            {action}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section>
-            <div className="flex items-center gap-4 mb-6">
-              <span className="text-[11px] font-black tracking-[0.2em] text-slate-400 uppercase">This Week</span>
-              <div className="h-[1px] flex-1 bg-surface-container-high"></div>
-            </div>
-            <div className="space-y-4">
-              {notifications.filter(n => n.group === 'thisWeek').map(notif => (
-                <div
-                  key={notif.id}
-                  className={`bg-white p-6 rounded-xl flex gap-5 kinetic-shadow hover:translate-x-1 transition-all ${
-                    notif.isUnread ? 'bg-primary-fixed/20 border-l-4 border-accent' : ''
-                  }`}
-                >
-                  <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    notif.isUnread ? 'bg-white text-accent' : 'bg-surface-container-low text-primary'
-                  }`}>
-                    <span
-                      className="material-symbols-outlined text-[24px]"
-                      style={notif.isUnread ? { fontVariationSettings: "'FILL' 1" } : undefined}
-                    >
-                      {notif.icon}
-                    </span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="flex justify-between items-start mb-1">
-                      <h3 className="font-bold text-primary-container">{notif.title}</h3>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase">{notif.time}</span>
-                    </div>
-                    <p className="text-sm text-on-surface-variant leading-relaxed mb-4">{notif.content}</p>
-                    {notif.actions && (
-                      <div className="flex gap-3">
-                        {notif.actions.map((action, i) => (
-                          <button
-                            key={i}
-                            className="bg-accent text-white px-4 py-2 rounded-lg text-xs font-bold accent-shadow hover:opacity-90 transition-opacity"
-                          >
-                            {action}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        </div>
-
-        <div className="col-span-12 lg:col-span-4 space-y-8">
-          <div className="relative bg-primary-container rounded-3xl p-8 overflow-hidden kinetic-shadow">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/20 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-tertiary/40 rounded-full -ml-12 -mb-12 blur-2xl"></div>
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-6">
-                <span className="material-symbols-outlined text-accent text-[32px]">warning</span>
-                <span className="text-white font-black text-xl tracking-tight">Status Alert</span>
+      {/* Notifications List */}
+      <div className="space-y-3">
+        {filtered.map(notif => (
+          <div
+            key={notif.id}
+            className={`bg-white rounded-2xl p-5 sm:p-6 shadow-sm border transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${
+              notif.isUnread
+                ? 'border-l-4 border-l-[#E87722] border-slate-200/80 bg-orange-50/10'
+                : 'border-slate-200/80'
+            }`}
+          >
+            <div className="flex items-start gap-4 flex-1">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                notif.type === 'progress'
+                  ? 'bg-orange-100 text-[#E87722]'
+                  : notif.type === 'workout'
+                  ? 'bg-blue-100 text-[#1A3C5E]'
+                  : notif.type === 'attendance'
+                  ? 'bg-emerald-100 text-emerald-800'
+                  : 'bg-amber-100 text-amber-800'
+              }`}>
+                <span className="material-symbols-outlined text-xl">
+                  {notif.type === 'progress'
+                    ? 'leaderboard'
+                    : notif.type === 'workout'
+                    ? 'fitness_center'
+                    : notif.type === 'attendance'
+                    ? 'local_fire_department'
+                    : 'payments'}
+                </span>
               </div>
-              <h2 className="text-3xl font-black text-white mb-2 leading-tight">Membership Expiring</h2>
-              <p className="text-primary-fixed/70 text-sm mb-8 font-medium">
-                Your 'Platinum Sanctuary' access will expire in <span className="text-accent font-bold">4 days</span>. Renew now to maintain your peak performance streak.
-              </p>
-              <div className="space-y-4">
-                <button className="w-full bg-accent text-white py-4 rounded-xl font-black text-sm uppercase tracking-widest accent-shadow hover:translate-y-[-2px] transition-all">
-                  Renew Access
-                </button>
-                <button className="w-full bg-white/10 text-white py-4 rounded-xl font-bold text-sm border border-white/10 hover:bg-white/20 transition-all">
-                  Manage Subscription
-                </button>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-bold text-[#1A3C5E]">{notif.title}</h3>
+                  {notif.isUnread && (
+                    <span className="w-2 h-2 rounded-full bg-[#E87722] flex-shrink-0" />
+                  )}
+                  <span className="text-[11px] text-slate-400 ml-auto flex-shrink-0">{notif.time}</span>
+                </div>
+                <p className="text-xs text-slate-600 leading-relaxed">{notif.content}</p>
               </div>
             </div>
-          </div>
 
-          <div className="bg-white rounded-2xl p-6 kinetic-shadow">
-            <h4 className="text-[11px] font-black uppercase tracking-widest text-slate-400 mb-4">Notification Health</h4>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-bold text-primary-container">Unread rate</span>
-              <span className="text-sm font-black text-accent">12%</span>
+            <div className="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+              {notif.link && (
+                <Link
+                  to={notif.link}
+                  onClick={() => markItemRead(notif.id)}
+                  className="px-4 py-2 bg-[#1A3C5E] hover:bg-[#15324E] text-white rounded-xl text-xs font-bold transition-all shadow-sm"
+                >
+                  {notif.actionText || 'View'}
+                </Link>
+              )}
+              {notif.isUnread && (
+                <button
+                  onClick={() => markItemRead(notif.id)}
+                  className="p-2 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-colors"
+                  title="Mark as read"
+                >
+                  <span className="material-symbols-outlined text-base">done</span>
+                </button>
+              )}
             </div>
-            <div className="w-full bg-surface-container-low h-2 rounded-full overflow-hidden">
-              <div className="bg-accent h-full w-[12%] rounded-full"></div>
-            </div>
-            <p className="text-[10px] text-on-surface-variant mt-4 leading-relaxed italic">"A clear inbox is a focused mind." — Coach Marcus</p>
           </div>
+        ))}
 
-          <div className="bg-surface-container-low rounded-2xl p-6 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center text-primary mb-4 shadow-sm">
-              <span className="material-symbols-outlined">support_agent</span>
-            </div>
-            <h4 className="font-bold text-primary-container mb-2">Need assistance?</h4>
-            <p className="text-xs text-on-surface-variant mb-4">Our concierge is available 24/7 for sanctuary members.</p>
-            <a className="text-xs font-black text-primary-container underline underline-offset-4 decoration-accent/30 uppercase tracking-wider" href="#">
-              Contact Support
-            </a>
+        {filtered.length === 0 && (
+          <div className="bg-white rounded-2xl p-12 text-center border border-slate-200/80 space-y-2">
+            <span className="material-symbols-outlined text-4xl text-slate-300">notifications_off</span>
+            <p className="text-sm font-bold text-slate-700">No notifications found</p>
+            <p className="text-xs text-slate-400">All alerts and reminders have been caught up.</p>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
