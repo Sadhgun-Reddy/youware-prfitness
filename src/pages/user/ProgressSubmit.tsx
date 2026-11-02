@@ -1,174 +1,132 @@
-import { useState, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuthStore } from '../../store/useAuthStore';
-import { useDataStore } from '../../store/useDataStore';
-import { ArrowLeft, Camera, AlertCircle, CheckCircle } from 'lucide-react';
+import { useState } from 'react';
 
 export default function ProgressSubmit() {
-  const { user } = useAuthStore();
-  const { addProgressSubmission } = useDataStore();
-  const navigate = useNavigate();
+  const [weight] = useState('74.5');
+  const [lastWeekWeight] = useState('75.3');
+  const weightDiff = (parseFloat(weight) - parseFloat(lastWeekWeight)).toFixed(1);
   
-  const [form, setForm] = useState({
-    weight: '', chest: '', waist: '', hips: '', arms: '', thighs: '',
-  });
-  const [notes, setNotes] = useState('');
-  const [photos, setPhotos] = useState<Record<string, string>>({});
-  const [submitted, setSubmitted] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeView, setActiveView] = useState<string | null>(null);
+  const [chest, setChest] = useState('96');
+  const [waist, setWaist] = useState('84');
+  const [hips, setHips] = useState('98');
 
-  // Sunday Check (0 is Sunday, 6 is Saturday)
-  const isSunday = new Date().getDay() === 0;
-
-  if (!user) return null;
-
-  const update = (field: string, value: string) => {
-    setForm(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handlePhotoClick = (view: string) => {
-    setActiveView(view);
-    fileInputRef.current?.click();
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file && activeView) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPhotos(prev => ({ ...prev, [activeView]: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleSubmit = () => {
-    if (!isSunday) return;
-
-    const submission = {
-      id: `ps-${Date.now()}`,
-      memberId: user.id,
-      memberName: user.name,
-      weekStartDate: new Date().toISOString().split('T')[0], // Simplified
-      weight: parseFloat(form.weight),
-      chest: form.chest ? parseFloat(form.chest) : undefined,
-      waist: form.waist ? parseFloat(form.waist) : undefined,
-      hips: form.hips ? parseFloat(form.hips) : undefined,
-      arms: form.arms ? parseFloat(form.arms) : undefined,
-      thighs: form.thighs ? parseFloat(form.thighs) : undefined,
-      photoFront: photos['Front'],
-      photoSide: photos['Side'],
-      photoBack: photos['Back'],
-      submittedAt: new Date().toISOString(),
-      reviewed: false,
-    };
-
-    addProgressSubmission(submission);
-    setSubmitted(true);
-    setTimeout(() => navigate('/progress'), 2000);
-  };
-
-  if (submitted) {
-    return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-20 h-20 rounded-full bg-success mx-auto flex items-center justify-center mb-4">
-            <CheckCircle className="w-10 h-10 text-white" />
-          </div>
-          <h2 className="text-xl font-bold text-navy-600 mb-2">Progress Submitted!</h2>
-          <p className="text-sm text-navy-600/50">Your trainer will review and provide feedback soon.</p>
-        </div>
-      </div>
-    );
-  }
+  const [uploadedPhotos] = useState([
+    { name: 'front.jpg', size: '2.1 MB', url: 'https://lh3.googleusercontent.com/aida-public/AB6AXuA1Pm6EfKn_9TC4_MjUCVv6P67w0rfq0ruojLTMOm2CF1SCMO0OU28o9WZD-K4BwhdA2XC8UZAH0y6XqY3xsusnklHnYJGqEDOvmeQJMPKkP8rBlgZh0CCLlcE_-t3v2-LWvR4Aynw2M1nFLo6fzextID49xVcZFJXcNJSVu4FImPpc8KctvEFR3jMYNQLZgv1SPjnAtjYaKEic2ZF2cmQSxKSiXbKjJWA3tR54TkhRJJM7gR3jFFcBWRyk1sK1Ws-qrDeav7IH6YQ' }
+  ]);
 
   return (
-    <div className="pb-24 md:pb-8">
-      <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate('/progress')} className="p-2 rounded-xl hover:bg-offwhite-200 transition-colors">
-          <ArrowLeft className="w-5 h-5 text-navy-600" />
-        </button>
-        <h1 className="page-header">Submit Weekly Progress</h1>
+    <div className="max-w-[800px] mx-auto mb-8">
+      <div className="flex flex-col gap-1 mb-6">
+        <h1 className="text-4xl font-extrabold tracking-tight text-primary">Submit This Week's Progress</h1>
+        <p className="text-on-surface-variant text-lg">Week 24, 2025 · Sunday, 15 Jun 2025</p>
       </div>
 
-      {!isSunday && (
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-semibold text-amber-800">Submission Closed</p>
-            <p className="text-xs text-amber-700/80">Weekly progress can only be submitted on Sundays. Today is {new Date().toLocaleDateString('en-IN', { weekday: 'long' })}.</p>
-          </div>
-        </div>
-      )}
+      <div className="bg-[#E87722] rounded-xl px-6 py-4 flex items-center gap-3 shadow-[0_4px_20px_rgba(232,119,34,0.15)] mb-8">
+        <span className="material-symbols-outlined text-white" style={{ fontVariationSettings: "'FILL' 1" }}>alarm</span>
+        <span className="text-white font-medium tracking-wide">Submission closes at midnight tonight</span>
+      </div>
 
-      <div className={`space-y-4 ${!isSunday ? 'opacity-50 pointer-events-none' : ''}`}>
-        <div className="card !p-5">
-          <h3 className="section-title mb-4">Body Measurements</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-navy-600 mb-1">Weight (kg) *</label>
-              <input type="number" className="input-field" placeholder="72" value={form.weight} onChange={e => update('weight', e.target.value)} step="0.1" />
+      <div className="bg-surface-container-lowest rounded-xl shadow-[0_8px_40px_rgba(26,60,94,0.08)] p-12 space-y-16">
+        <section className="text-center">
+          <h2 className="label-md uppercase tracking-[0.15em] text-on-surface-variant font-bold mb-8">Section 1 — Body Weight</h2>
+          <div className="flex flex-col items-center">
+            <div className="relative inline-flex items-baseline gap-2">
+              <span className="text-[80px] font-black tracking-tighter text-primary leading-none">{weight}</span>
+              <span className="text-2xl font-bold text-on-surface-variant uppercase tracking-widest">kg</span>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-navy-600 mb-1">Chest (in)</label>
-              <input type="number" className="input-field" placeholder="40" value={form.chest} onChange={e => update('chest', e.target.value)} step="0.5" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-navy-600 mb-1">Waist (in)</label>
-              <input type="number" className="input-field" placeholder="32" value={form.waist} onChange={e => update('waist', e.target.value)} step="0.5" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-navy-600 mb-1">Hips (in)</label>
-              <input type="number" className="input-field" placeholder="36" value={form.hips} onChange={e => update('hips', e.target.value)} step="0.5" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-navy-600 mb-1">Arms (in)</label>
-              <input type="number" className="input-field" placeholder="14" value={form.arms} onChange={e => update('arms', e.target.value)} step="0.5" />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-navy-600 mb-1">Thighs (in)</label>
-              <input type="number" className="input-field" placeholder="22" value={form.thighs} onChange={e => update('thighs', e.target.value)} step="0.5" />
+            <div className="mt-4 flex items-center gap-2 bg-[#E8F5E9] text-[#2E7D32] px-4 py-1.5 rounded-full text-sm font-semibold">
+              <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+              {weightDiff} kg from last week
             </div>
           </div>
-        </div>
+        </section>
 
-        <div className="card !p-5">
-          <h3 className="section-title mb-4">Progress Photos</h3>
-          <input type="file" hidden ref={fileInputRef} accept="image/*" onChange={handleFileChange} />
-          <div className="grid grid-cols-3 gap-3">
-            {['Front', 'Side', 'Back'].map(view => (
-              <div 
-                key={view} 
-                onClick={() => handlePhotoClick(view)}
-                className="aspect-[3/4] rounded-xl border-2 border-dashed border-offwhite-300 flex flex-col items-center justify-center gap-2 cursor-pointer hover:border-accent-500/50 hover:bg-accent-50/30 transition-all overflow-hidden relative"
-              >
-                {photos[view] ? (
-                  <img src={photos[view]} alt={view} className="w-full h-full object-cover" />
-                ) : (
-                  <>
-                    <Camera className="w-6 h-6 text-navy-600/30" />
-                    <span className="text-xs text-navy-600/40">{view}</span>
-                  </>
-                )}
+        <section>
+          <div className="flex flex-col items-center text-center mb-8">
+            <h2 className="label-md uppercase tracking-[0.15em] text-on-surface-variant font-bold">Section 2 — Body Measurements</h2>
+            <p className="text-on-surface-variant/70 text-sm mt-1">Optional but recommended for tracking body composition</p>
+          </div>
+          <div className="grid grid-cols-3 gap-6">
+            <div className="bg-surface-container-low p-6 rounded-lg group transition-all duration-300 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/20">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Chest (cm)</label>
+              <input 
+                className="w-full bg-transparent border-none p-0 text-2xl font-bold text-primary focus:ring-0" 
+                type="text" 
+                value={chest}
+                onChange={(e) => setChest(e.target.value)}
+              />
+            </div>
+            <div className="bg-surface-container-low p-6 rounded-lg group transition-all duration-300 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/20">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Waist (cm)</label>
+              <input 
+                className="w-full bg-transparent border-none p-0 text-2xl font-bold text-primary focus:ring-0" 
+                type="text" 
+                value={waist}
+                onChange={(e) => setWaist(e.target.value)}
+              />
+            </div>
+            <div className="bg-surface-container-low p-6 rounded-lg group transition-all duration-300 focus-within:bg-white focus-within:ring-1 focus-within:ring-primary/20">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-slate-500 mb-2">Hips (cm)</label>
+              <input 
+                className="w-full bg-transparent border-none p-0 text-2xl font-bold text-primary focus:ring-0" 
+                type="text" 
+                value={hips}
+                onChange={(e) => setHips(e.target.value)}
+              />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <div className="flex flex-col items-center text-center mb-8">
+            <h2 className="label-md uppercase tracking-[0.15em] text-on-surface-variant font-bold">Section 3 — Progress Photos</h2>
+            <p className="text-on-surface-variant/70 text-sm mt-1">Add up to 3 photos (Front, Side, Back)</p>
+          </div>
+          <div className="space-y-6">
+            <div className="border-2 border-dashed border-outline-variant rounded-xl p-10 flex flex-col items-center justify-center hover:bg-surface-container-low transition-colors cursor-pointer group">
+              <span className="material-symbols-outlined text-4xl text-slate-300 group-hover:text-on-tertiary-container transition-colors mb-4">cloud_upload</span>
+              <p className="text-on-surface font-medium">Drag and drop or click to upload</p>
+              <p className="text-on-surface-variant/60 text-xs mt-1">Supports JPG, PNG (Max 10MB each)</p>
+            </div>
+
+            {uploadedPhotos.map((photo, index) => (
+              <div key={index} className="bg-surface-container-low p-4 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-lg overflow-hidden border border-white">
+                    <img alt={photo.name} className="w-full h-full object-cover" src={photo.url} />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-primary">{photo.name}</p>
+                    <p className="text-xs text-on-surface-variant">{photo.size}</p>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2 flex-1 max-w-[200px]">
+                  <div className="flex items-center gap-2 text-[#2E7D32]">
+                    <span className="material-symbols-outlined text-[18px]" style={{ fontVariationSettings: "'FILL' 1" }}>check_circle</span>
+                    <span className="text-[10px] font-bold uppercase tracking-widest">Complete</span>
+                  </div>
+                  <div className="w-full h-1.5 bg-white rounded-full overflow-hidden">
+                    <div className="h-full bg-on-tertiary-container w-full"></div>
+                  </div>
+                </div>
+                <button className="p-2 text-on-surface-variant hover:text-error transition-colors">
+                  <span className="material-symbols-outlined">delete</span>
+                </button>
               </div>
             ))}
           </div>
-        </div>
+        </section>
 
-        <div className="card !p-5">
-          <h3 className="section-title mb-3">Notes <span className="text-navy-600/40 font-normal">(optional)</span></h3>
-          <textarea className="input-field min-h-[80px] resize-none" placeholder="How did your week go? Any challenges or wins?" value={notes} onChange={e => setNotes(e.target.value)} />
-        </div>
+        <footer className="pt-8 space-y-8">
+          <div className="flex items-center justify-center gap-2 text-on-surface-variant/60">
+            <span className="material-symbols-outlined text-[16px]">sync</span>
+            <span className="text-xs font-medium italic">Your entries are automatically saved</span>
+          </div>
+          <button className="w-full py-6 rounded-xl bg-gradient-to-br from-[#E87722] to-[#c2621a] text-white font-bold text-lg tracking-wider shadow-[0_12px_24px_rgba(232,119,34,0.25)] hover:translate-y-[-2px] active:scale-[0.98] transition-all flex items-center justify-center gap-3">
+            Submit My Progress
+            <span className="material-symbols-outlined">arrow_forward</span>
+          </button>
+        </footer>
       </div>
-
-      <button 
-        onClick={handleSubmit} 
-        disabled={!isSunday || !form.weight} 
-        className="btn-primary w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {isSunday ? 'Submit Progress' : 'Locked until Sunday'}
-      </button>
     </div>
   );
 }

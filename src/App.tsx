@@ -14,6 +14,7 @@ import Payment from './pages/auth/Payment';
 import AuthLayout from './layouts/AuthLayout';
 import StitchDemo from './pages/design/StitchDemo';
 import PaymentSuccess from './pages/auth/PaymentSuccess';
+import PaymentFailure from './pages/auth/PaymentFailure';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 
@@ -33,9 +34,11 @@ import CheckIn from './pages/user/CheckIn';
 import Attendance from './pages/user/Attendance';
 import Progress from './pages/user/Progress';
 import ProgressHistory from './pages/user/ProgressHistory';
+import ProgressDetail from './pages/user/ProgressDetail';
 import ProgressSubmit from './pages/user/ProgressSubmit';
 import Videos from './pages/user/Videos';
 import VideoPlayer from './pages/user/VideoPlayer';
+import WorkoutDayDetail from './pages/user/WorkoutDayDetail';
 import WorkoutPlan from './pages/user/WorkoutPlan';
 import DietPlan from './pages/user/DietPlan';
 import Remarks from './pages/user/Remarks';
@@ -47,6 +50,7 @@ import Notifications from './pages/user/Notifications';
 // Admin Pages
 import AdminDashboard from './pages/admin/Dashboard';
 import Members from './pages/admin/Members';
+import MemberProfile from './pages/admin/MemberProfile';
 import AttendanceLog from './pages/admin/AttendanceLog';
 import ProgressReviews from './pages/admin/ProgressReviews';
 import WorkoutPlans from './pages/admin/WorkoutPlans';
@@ -72,7 +76,7 @@ function AppRoutes() {
         <Route path="/register/plan-select" element={<PlanSelection />} />
         <Route path="/register/payment" element={<Payment />} />
         <Route path="/register/payment-success" element={<PaymentSuccess />} />
-        <Route path="/register/payment-failure" element={<PlanSelection />} />
+        <Route path="/register/payment-failure" element={<PaymentFailure />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Route>
@@ -96,12 +100,13 @@ function AppRoutes() {
         <Route path="/progress" element={<Progress />} />
         <Route path="/progress/history" element={<ProgressHistory />} />
         <Route path="/progress/submit" element={<ProgressSubmit />} />
-        <Route path="/progress/history/:weekId" element={<Progress />} />
+        <Route path="/progress/history/:weekId" element={<ProgressDetail />} />
         <Route path="/videos" element={<Videos />} />
         <Route path="/videos/:categorySlug" element={<Videos />} />
         <Route path="/videos/:categorySlug/:videoId" element={<VideoPlayer />} />
         <Route path="/plan/workout" element={<WorkoutPlan />} />
         <Route path="/plan/workout/:day" element={<WorkoutPlan />} />
+        <Route path="/plan/workout/:day/:exerciseId" element={<WorkoutDayDetail />} />
         <Route path="/plan/diet" element={<DietPlan />} />
         <Route path="/remarks" element={<Remarks />} />
         <Route path="/profile" element={<Profile />} />
@@ -110,11 +115,11 @@ function AppRoutes() {
       </Route>
 
       {/* Admin Routes */}
-      <Route path="/admin/login" element={isAuthenticated && role === 'admin' ? <Navigate to="/admin" /> : <Login />} />
+      // Admin login consolidated on the main login page (token-based access)
       <Route path="/admin" element={isAuthenticated && role === 'admin' ? <AdminLayout /> : <Navigate to="/login" />}>
         <Route index element={<AdminDashboard />} />
         <Route path="members" element={<Members />} />
-        <Route path="members/:memberId" element={<Members />} />
+        <Route path="members/:memberId" element={<MemberProfile />} />
         <Route path="checkins" element={<AttendanceLog />} />
         <Route path="progress" element={<ProgressReviews />} />
         <Route path="progress/:submissionId" element={<ProgressReviews />} />

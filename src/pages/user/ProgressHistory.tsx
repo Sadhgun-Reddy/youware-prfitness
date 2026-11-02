@@ -1,256 +1,200 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, BarChart2, PlusCircle, CheckCircle, Clock } from 'lucide-react';
-import { useAuthStore } from '../../store/useAuthStore';
-
-// Extended local mock data for 6 weeks as requested
-const MOCK_HISTORY_DATA = [
-  { id: '1', weekId: 'w1', date: '2025-02-03', label: 'Week of 3 Feb', weight: 80.5, status: 'reviewed', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&q=80&w=200&h=200' },
-  { id: '2', weekId: 'w2', date: '2025-02-10', label: 'Week of 10 Feb', weight: 79.2, status: 'reviewed', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&q=80&w=200&h=200' },
-  { id: '3', weekId: 'w3', date: '2025-02-17', label: 'Week of 17 Feb', weight: 78.5, status: 'reviewed', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&q=80&w=200&h=200' },
-  { id: '4', weekId: 'w4', date: '2025-02-24', label: 'Week of 24 Feb', weight: 77.8, status: 'reviewed', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&q=80&w=200&h=200' },
-  { id: '5', weekId: 'w5', date: '2025-03-03', label: 'Week of 3 Mar', weight: 76.4, status: 'reviewed', thumbnail: 'https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?auto=format&fit=crop&q=80&w=200&h=200' },
-  { id: '6', weekId: 'w6', date: '2025-03-10', label: 'Week of 10 Mar', weight: 75.1, status: 'pending', thumbnail: '' },
-];
-
-type FilterType = '4weeks' | '8weeks' | 'all';
+import { useState } from 'react';
 
 export default function ProgressHistory() {
-  const navigate = useNavigate();
-  const user = useAuthStore(s => s.user);
+  const [expandedCard, setExpandedCard] = useState<number | null>(0);
 
-  const [state, setState] = useState<'loading' | 'loaded' | 'empty' | 'error'>('loading');
-  const [data, setData] = useState<typeof MOCK_HISTORY_DATA>([]);
-  const [filter, setFilter] = useState<FilterType>('all');
-
-  const fetchData = () => {
-    setState('loading');
-    setTimeout(() => {
-      // Simulate GET /progress/me
-      // Simulate random error if user ID ends with 'error' (just for robustness)
-      if (user?.id === 'error-user') {
-        setState('error');
-      } else if (MOCK_HISTORY_DATA.length === 0) {
-        setState('empty');
-      } else {
-        setData(MOCK_HISTORY_DATA);
-        setState('loaded');
+  const submissions = [
+    {
+      week: 'Week 24',
+      date: 'Sun, 15 Jun 2025',
+      weight: 74.5,
+      chest: '96cm',
+      waist: '84cm',
+      hips: '98cm',
+      status: 'reviewed',
+      photos: [
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuDyQKg5_wBkTMR_D9ivtrPHP2h9mVA3J0tOIgB__Dx8Pf7_Dol8vHDeoI6naC7zMrFcd-vsFEb5MHNCWZ0EGhwlDiIhg-w0YXDy7SyYyQ60BrXPDEPoScqEB5Pa-WfC80PzUjvpziaJV5e9bBw6LMbft3aQxqzsVkF52rPV5MUyTpt3WMkntZ91n7BDVZCvW5riP8RRqdgtGFY_-17toE3Cd1sDyjBXz4ZtHNn6PkOHOpHxvXtDviRHSdIqvRz6i89EMvn5dmJwkQQ',
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuBPsmjOIbTD-BvhAhjLuUm5dao1QGc0EWTjZ9xdl0Qlf9McN9_zvq8_TylScHMp5cOb71fu_RSyvMNWPpzLK1B_5NAmVvlNrlGGENLwid0nYOd7qDLuLlqwo2WKPVC5OJtuy4NOmPMY4b0mq2s9QvHW3jPGSXZpkuEi6bOo5OItHRREjcfc1gEqmf5zmEMaRp1e0eIH1r0d-_9HyTWiwiNi2k0fmPv0L7mOGPjdmFXRxln1NUCoSDS94lNx9C3hVqjGS2RPOnghijQ',
+        'https://lh3.googleusercontent.com/aida-public/AB6AXuCx7EfezTdHZhMpmNKvtWKQm7RlK_pxytb5mUz8kscV6OIxXVcpKUMCC8aRu1ID_wViO4qbvEU5RXbLESDU-B2ljCge-MdgYFt50TvtFWpuAl-Qqc_ZpfV0GaHNB7lIEEylic4gsECo9YzJWlpRwxlo0jqEYik9FtCR39zc2fHES5SqeIybLiAwbmp6mX72FyAp93f2b7a8Iy350DLx5Z7kXTOzaw4ivpmhHSIt9ZJ3mpWX_32V_LekxA_CnHogA_05UxXjISMi7pk'
+      ],
+      trainerRemark: {
+        text: "Great progress! Down 0.8kg this week. Focus on keeping that protein intake high as we enter the next phase of your cut. The waist measurement drop is significant.",
+        trainer: "Ravi (Trainer)",
+        date: "16 JUN · 10:45 AM",
+        avatar: "https://lh3.googleusercontent.com/aida-public/AB6AXuBxDMoBWbbg-odxC5JVL9T-R0ti9c_3es-aUNVJD2QYzkTnPPu8kiZHbxJHFqN3SYQfFskqhjaU3vEEdZhD9uhLh4-OKZ3NdlfwUwYAmnVfB6hMcc3OFZYtocLj6ulaKF2ONti-E1eXyrkZFYBqTglnxOC5-Han3L0HxXhALXhh-xnOC81FmaeWxy2AxhsNWbXKZfwXftQm_3TgiuK5u6hS70r2mGXvVOG5Iq5l4wXbZVz3uYIjT4z70hfeKnQ0KYH8fShsgNhXTBY"
       }
-    }, 1200);
-  };
+    },
+    {
+      week: 'Week 23',
+      date: 'Sun, 08 Jun 2025',
+      weight: 75.3,
+      chest: '96.5cm',
+      waist: '85.2cm',
+      hips: '99cm',
+      status: 'reviewed',
+      photos: [],
+      trainerRemark: null
+    },
+    {
+      week: 'Week 22',
+      date: 'Sun, 01 Jun 2025',
+      weight: 75.8,
+      chest: '97cm',
+      waist: '86cm',
+      hips: '99cm',
+      status: 'pending',
+      photos: [],
+      trainerRemark: null
+    }
+  ];
 
-  useEffect(() => {
-    fetchData();
-  }, [user]);
-
-  const filteredData = useMemo(() => {
-    let limit = data.length;
-    if (filter === '4weeks') limit = 4;
-    else if (filter === '8weeks') limit = 8;
-    return data.slice(-limit); // get the most recent N
-  }, [data, filter]);
-
-  // SVG Chart component
-  const renderChart = () => {
-    if (filteredData.length < 2) return <div className="p-8 text-center text-navy-500/60">Not enough data to plot a chart.</div>;
-
-    const width = 800;
-    const height = 280;
-    const padding = { top: 20, right: 30, bottom: 40, left: 40 };
-    const innerWidth = width - padding.left - padding.right;
-    const innerHeight = height - padding.top - padding.bottom;
-
-    const weights = filteredData.map(d => d.weight);
-    const maxWeight = Math.max(...weights) + 2;
-    const minWeight = Math.max(0, Math.min(...weights) - 2);
-    const range = maxWeight - minWeight;
-
-    const points = filteredData.map((d, i) => {
-      const x = padding.left + (i / (filteredData.length - 1)) * innerWidth;
-      const y = padding.top + innerHeight - ((d.weight - minWeight) / range) * innerHeight;
-      return { ...d, x, y };
-    });
-
-    const pathD = `M ${points.map(p => `${p.x},${p.y}`).join(' L ')}`;
-
-    return (
-      <div className="w-full overflow-x-auto custom-scrollbar pb-4 -mx-2 px-2">
-        <div className="min-w-[600px]">
-          <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto drop-shadow-sm font-sans">
-            {/* Grid lines */}
-            {[0, 0.25, 0.5, 0.75, 1].map(pct => {
-              const y = padding.top + innerHeight * pct;
-              const weightVal = maxWeight - range * pct;
-              return (
-                <g key={pct}>
-                  <line x1={padding.left} y1={y} x2={width - padding.right} y2={y} stroke="#e2e8f0" strokeDasharray="4 4" />
-                  <text x={padding.left - 10} y={y + 4} textAnchor="end" fill="#64748b" fontSize="12">{weightVal.toFixed(1)}</text>
-                </g>
-              );
-            })}
-
-            {/* Line */}
-            <path d={pathD} fill="none" stroke="#10b981" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-            
-            {/* Area under curve (gradient) */}
-            <defs>
-              <linearGradient id="chart-gradient" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.2" />
-                <stop offset="100%" stopColor="#10b981" stopOpacity="0" />
-              </linearGradient>
-            </defs>
-            <path d={`${pathD} L ${points[points.length - 1].x},${height - padding.bottom} L ${padding.left},${height - padding.bottom} Z`} fill="url(#chart-gradient)" />
-
-            {/* Points & Labels */}
-            {points.map((p, i) => (
-              <g key={p.id} className="cursor-pointer group" onClick={() => navigate(`/progress/history/${p.weekId}`)}>
-                {/* Invisible larger circle for easier clicking */}
-                <circle cx={p.x} cy={p.y} r="16" fill="transparent" />
-                
-                <circle cx={p.x} cy={p.y} r="6" fill="#10b981" stroke="#ffffff" strokeWidth="2" className="transition-all duration-300 group-hover:r-8 group-hover:stroke-emerald-200" />
-                
-                {/* Tooltip on hover */}
-                <g className="opacity-0 group-hover:opacity-100 transition-opacity">
-                  <rect x={p.x - 30} y={p.y - 40} width="60" height="24" rx="4" fill="#1e293b" />
-                  <text x={p.x} y={p.y - 24} textAnchor="middle" fill="#ffffff" fontSize="12" fontWeight="bold">{p.weight} kg</text>
-                </g>
-                
-                {/* X-axis labels */}
-                <text x={p.x} y={height - 10} textAnchor="middle" fill="#64748b" fontSize="12" className="hidden sm:block">
-                  {p.label.replace('Week of ', '')}
-                </text>
-              </g>
-            ))}
-          </svg>
-        </div>
-      </div>
-    );
-  };
+  const chartData = [
+    { week: 'W21', height: 120 },
+    { week: 'W22', height: 84 },
+    { week: 'W23', height: 96 },
+    { week: 'W24', height: 120, active: true },
+    { week: 'W25', height: 108 },
+    { week: 'W26', height: 130 },
+  ];
 
   return (
-    <div className="max-w-4xl mx-auto pb-12">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-        <div>
-          <Link to="/progress" className="inline-flex items-center gap-1 text-sm font-medium text-navy-500/70 hover:text-accent-500 transition-colors mb-2">
-            <ArrowLeft className="w-4 h-4" />
-            My Progress
-          </Link>
-          <h1 className="text-2xl font-bold text-navy-600">Progress History</h1>
-        </div>
-
-        {state === 'loaded' && (
-          <select 
-            className="input-field py-2 bg-white min-w-[160px]"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value as FilterType)}
-          >
-            <option value="4weeks">Last 4 Weeks</option>
-            <option value="8weeks">Last 8 Weeks</option>
-            <option value="all">All Time</option>
-          </select>
-        )}
-      </div>
-
-      {state === 'loading' && (
-        <div className="space-y-6">
-          <div className="card p-6 h-[300px] animate-pulse bg-white flex items-center justify-center">
-            <div className="w-full h-full bg-navy-50/50 rounded-xl"></div>
+    <div>
+      <section className="mb-10">
+        <div className="bg-surface-container-lowest rounded-xl p-8 shadow-[0_8px_30px_rgba(26,60,94,0.06)] relative overflow-hidden">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
+            <div>
+              <h2 className="text-lg font-bold text-primary-container">Weight Over Time</h2>
+              <p className="text-sm text-on-surface-variant">Tracking your body mass composition</p>
+            </div>
+            <div className="flex items-center gap-2 bg-surface-container-low px-3 py-1.5 rounded-lg border border-outline-variant/20">
+              <span className="text-xs font-bold text-on-surface-variant">Last 3 months</span>
+              <span className="material-symbols-outlined text-sm">expand_more</span>
+            </div>
           </div>
-          <div className="grid gap-4">
-            {[1, 2, 3].map(i => (
-              <div key={i} className="card p-4 flex gap-4 animate-pulse">
-                <div className="w-20 h-20 bg-navy-50 rounded-xl shrink-0"></div>
-                <div className="flex-1 space-y-3 py-2">
-                  <div className="h-4 bg-navy-50 rounded w-1/3"></div>
-                  <div className="h-6 bg-navy-50 rounded w-1/4"></div>
-                </div>
+
+          <div className="relative h-[200px] flex items-end justify-between gap-2 px-2 border-b border-outline-variant/30 pb-6 mb-4">
+            {chartData.map((data, index) => (
+              <div key={index} className="flex flex-col items-center group relative flex-1">
+                {data.active && (
+                  <div className="absolute -top-16 -left-12 w-36 bg-white shadow-xl rounded-lg p-3 z-20 border border-outline-variant/20">
+                    <p className="text-[10px] uppercase font-bold text-on-surface-variant mb-1">Week 24 · 15 Jun</p>
+                    <p className="text-sm font-black text-primary flex items-center justify-between">
+                      74.5 kg <span className="text-[10px] text-error font-medium">↘ 0.8kg</span>
+                    </p>
+                  </div>
+                )}
+                <div 
+                  className={`w-full rounded-t bg-primary ${data.active ? 'bg-on-tertiary-container ring-4 ring-tertiary-fixed/40' : ''}`}
+                  style={{ height: `${data.height}%`, maxHeight: '160px' }}
+                ></div>
+                <span className={`text-[10px] font-bold mt-2 ${data.active ? 'text-primary' : 'text-on-surface-variant'}`}>{data.week}</span>
               </div>
             ))}
           </div>
-        </div>
-      )}
 
-      {state === 'error' && (
-        <div className="card p-12 text-center flex flex-col items-center justify-center">
-          <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mb-4 text-red-500">
-            <RefreshCw className="w-8 h-8" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-emerald-50 flex items-center justify-center">
+              <span className="material-symbols-outlined text-emerald-600 text-lg" style={{ fontVariationSettings: "'FILL' 1" }}>trending_down</span>
+            </div>
+            <p className="text-sm font-medium text-emerald-700">Overall: <span className="font-bold">↘ 3.2 kg</span> lost in last 6 weeks</p>
           </div>
-          <h3 className="text-xl font-bold text-navy-600 mb-2">Could not load progress history.</h3>
-          <p className="text-navy-500/70 mb-6">There was a problem communicating with the server.</p>
-          <button onClick={fetchData} className="btn-primary flex items-center gap-2">
-            <RefreshCw className="w-4 h-4" /> Try Again
+        </div>
+      </section>
+
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-lg font-bold text-primary-container">All Submissions</h2>
+          <button className="text-xs font-bold text-on-surface-variant uppercase tracking-widest flex items-center gap-1">
+            Sort by Newest <span className="material-symbols-outlined text-sm">sort</span>
           </button>
         </div>
-      )}
 
-      {state === 'empty' && (
-        <div className="card p-12 text-center flex flex-col items-center justify-center">
-          <div className="w-24 h-24 bg-accent-50 rounded-full flex items-center justify-center mb-6 text-accent-500">
-            <BarChart2 className="w-12 h-12" />
-          </div>
-          <h3 className="text-2xl font-bold text-navy-600 mb-3">No Progress Yet</h3>
-          <p className="text-navy-500/70 mb-8 max-w-md mx-auto leading-relaxed">
-            Your progress chart will appear here after your first Sunday submission. Start tracking your weekly changes to see your journey!
-          </p>
-          <Link to="/progress/submit" className="btn-primary flex items-center gap-2 px-8 py-3">
-            <PlusCircle className="w-5 h-5" /> Submit Progress
-          </Link>
-        </div>
-      )}
-
-      {state === 'loaded' && (
-        <div className="space-y-6">
-          {/* Chart Card */}
-          <div className="card p-6 bg-white overflow-hidden">
-            <h3 className="text-lg font-bold text-navy-600 mb-6">Weight Trend (kg)</h3>
-            {renderChart()}
-          </div>
-
-          {/* List of submissions */}
-          <div>
-            <h3 className="text-lg font-bold text-navy-600 mb-4 px-1">Submission History</h3>
-            <div className="grid gap-4">
-              {/* Sort newest first for the list */}
-              {[...filteredData].reverse().map((entry) => (
-                <Link key={entry.id} to={`/progress/history/${entry.weekId}`} className="card p-4 sm:p-5 flex items-center gap-4 sm:gap-6 hover:shadow-lg transition-all duration-300 group border border-transparent hover:border-accent-100">
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 bg-navy-50 rounded-xl shrink-0 overflow-hidden relative shadow-inner">
-                    {entry.thumbnail ? (
-                      <img src={entry.thumbnail} alt="Progress" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
-                    ) : (
-                       <div className="w-full h-full flex items-center justify-center text-navy-300">
-                          <BarChart2 className="w-8 h-8 opacity-50" />
-                       </div>
-                    )}
+        <div className="space-y-4">
+          {submissions.map((sub, index) => (
+            <div 
+              key={index} 
+              className={`bg-surface-container-lowest rounded-xl shadow-[0_4px_20px_rgba(26,60,94,0.04)] overflow-hidden ${expandedCard === index ? '' : 'hover:shadow-[0_8px_30px_rgba(26,60,94,0.08)] transition-all'}`}
+            >
+              <div 
+                className="p-6 cursor-pointer"
+                onClick={() => setExpandedCard(expandedCard === index ? null : index)}
+              >
+                <div className="flex justify-between items-start">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-bold text-primary">{sub.week}</span>
+                      <span className="w-1 h-1 rounded-full bg-outline-variant"></span>
+                      <span className="text-sm text-on-surface-variant">{sub.date}</span>
+                    </div>
+                    <div className="text-3xl font-black text-primary">{sub.weight} <span className="text-sm font-medium text-on-surface-variant uppercase">kg</span></div>
                   </div>
-                  
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-navy-500/70 mb-1">{entry.label}</p>
-                    <div className="flex items-baseline gap-2">
-                       <p className="text-2xl font-bold text-navy-600">{entry.weight}</p>
-                       <span className="text-sm font-medium text-navy-400">kg</span>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                      sub.status === 'reviewed' ? 'bg-emerald-50 text-emerald-700' : 'bg-tertiary-fixed text-tertiary-container'
+                    }`}>
+                      {sub.status === 'reviewed' ? 'Reviewed' : 'Pending'} 
+                      <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: "'FILL' 1" }}>
+                        {sub.status === 'reviewed' ? 'check_circle' : 'schedule'}
+                      </span>
+                    </div>
+                    <button className="w-8 h-8 rounded-full hover:bg-surface-container transition-colors">
+                      <span className="material-symbols-outlined">
+                        {expandedCard === index ? 'expand_less' : 'expand_more'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2 mt-4">
+                  <span className="px-3 py-1 bg-primary-container text-on-primary-container text-[10px] font-bold rounded-full uppercase tracking-widest">Chest {sub.chest}</span>
+                  <span className="px-3 py-1 bg-primary-container text-on-primary-container text-[10px] font-bold rounded-full uppercase tracking-widest">Waist {sub.waist}</span>
+                  <span className="px-3 py-1 bg-primary-container text-on-primary-container text-[10px] font-bold rounded-full uppercase tracking-widest">Hips {sub.hips}</span>
+                </div>
+              </div>
+
+              {expandedCard === index && sub.photos.length > 0 && (
+                <div className="p-6 space-y-6 border-t border-surface-container">
+                  <div>
+                    <p className="text-[10px] font-black text-on-surface-variant uppercase tracking-widest mb-3">Progress Photos</p>
+                    <div className="grid grid-cols-3 gap-4">
+                      {sub.photos.map((photo, photoIndex) => (
+                        <div key={photoIndex} className="aspect-[3/4] rounded-lg overflow-hidden bg-surface-container relative group cursor-zoom-in">
+                          <img className="w-full h-full object-cover" alt="progress" src={photo} />
+                          <div className="absolute inset-0 bg-primary/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <span className="material-symbols-outlined text-white">zoom_in</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="hidden sm:flex flex-col items-end gap-2">
-                    {entry.status === 'reviewed' ? (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-xs font-bold tracking-wide">
-                        <CheckCircle className="w-3.5 h-3.5" /> Reviewed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-50 text-amber-600 text-xs font-bold tracking-wide">
-                        <Clock className="w-3.5 h-3.5" /> Pending Review
-                      </span>
-                    )}
-                    <span className="text-xs font-medium text-accent-500 opacity-0 group-hover:opacity-100 transition-opacity translate-x-2 group-hover:translate-x-0 duration-300">
-                      View Details →
-                    </span>
-                  </div>
-                </Link>
-              ))}
+                  {sub.trainerRemark && (
+                    <div className="bg-surface-container-low p-5 rounded-xl border-l-4 border-primary">
+                      <div className="flex items-start gap-4">
+                        <div className="w-10 h-10 rounded-full overflow-hidden shrink-0">
+                          <img className="w-full h-full object-cover" alt="trainer" src={sub.trainerRemark.avatar} />
+                        </div>
+                        <div className="flex-1">
+                          <p className="text-sm text-primary leading-relaxed italic">"{sub.trainerRemark.text}"</p>
+                          <div className="mt-3 flex items-center justify-between">
+                            <span className="text-[10px] font-bold text-on-surface-variant uppercase tracking-tighter">— {sub.trainerRemark.trainer}</span>
+                            <span className="text-[10px] text-outline">{sub.trainerRemark.date}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+          ))}
+
+          <div className="pt-6 flex justify-center">
+            <button className="px-8 py-3 rounded-xl border border-outline-variant text-on-surface-variant text-xs font-bold uppercase tracking-widest hover:bg-surface-container-low transition-all active:scale-95">
+              Load 3 More Submissions
+            </button>
           </div>
         </div>
-      )}
+      </section>
     </div>
   );
 }

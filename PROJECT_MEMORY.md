@@ -48,6 +48,10 @@ Last Updated: 2026-04-01
 - Patch 4: Admin ProgressReviews fix (hook-order) to prevent runtime errors
 - Patch 5: Tailwind theme token extension to support dark/brand tokens
 - Patch 6: New PROJECT_MEMORY.md to capture memory state going forward
+- Patch 7: Design conversion - Stitch HTML to React Landing page implementation
+  - Summary: Converted the Stitch design HTML to React component matching the PNG design exactly
+  - Files: src/pages/Landing.tsx (replaced with new design), index.html (added Google Fonts and Material Symbols)
+  - Acceptance: Landing page renders exactly like the Stitch PNG design
 
 6) How to resume in new chat
 - When starting a new chat, copy this file’s contents into the chat to rehydrate context and continue the task from the last state.
@@ -78,3 +82,11 @@ End of memory.
 - Patch 8: Update memory with chat history
 - Patch 9: Extend AuthState with token and memory hooks in store
 - Patch 10: Rework ProgressReviews to stable hook order and ensure UI renders
+- Patch 11: Fix duplicate layout in Dashboard and CheckIn pages
+  - Summary: Removed duplicate sidebar/header/mobile nav code from Dashboard.tsx and CheckIn.tsx. These pages now only contain page content, using UserLayout component for navigation.
+  - Files: src/pages/user/Dashboard.tsx, src/pages/user/CheckIn.tsx
+  - Acceptance: Pages render properly without duplicate navigation, build passes
+- Patch 12: Convert Attendance page from HTML design to React
+  - Summary: Converted Attendance.tsx to match the provided HTML design (Attendance History page with calendar, streak stats, weekly snapshot)
+  - Files: src/pages/user/Attendance.tsx
+  - Acceptance: Page matches design, build passes

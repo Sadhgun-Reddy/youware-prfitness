@@ -1,6 +1,6 @@
 import { Outlet, NavLink, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../store/useAuthStore';
-import { Home, MapPin, BarChart3, PlayCircle, User, Dumbbell, Clock, MessageSquare, Menu, X, Bell } from 'lucide-react';
+import { Home, MapPin, BarChart3, PlayCircle, User, Dumbbell, Clock, MessageSquare, Menu, X, Bell, Search, Settings } from 'lucide-react';
 import { mockNotifications } from '../data/mock';
 import { useState } from 'react';
 
@@ -33,7 +33,7 @@ export default function UserLayout() {
   return (
     <div className="min-h-screen bg-offwhite-100">
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-offwhite-300/60 flex-col z-40">
+      <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 bg-white border-r border-offwhite-300/60 flex-col z-40">
         {/* Logo */}
         <div className="h-16 flex items-center gap-2 px-6 border-b border-offwhite-300/60">
           <Dumbbell className="w-7 h-7 text-accent-500" />
@@ -86,8 +86,42 @@ export default function UserLayout() {
         </div>
       </aside>
 
+      {/* Desktop Header Bar */}
+      <header className="hidden lg:block fixed top-0 right-0 left-64 h-16 bg-white/85 backdrop-blur-md border-b border-offwhite-300/60 z-30">
+        <div className="flex items-center justify-between h-full px-8">
+          <div className="flex items-center gap-4">
+            <span className="text-lg font-bold text-navy-600">The Kinetic Sanctuary</span>
+          </div>
+          <div className="flex items-center gap-6">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-navy-400" />
+              <input 
+                className="pl-10 pr-4 py-2 bg-offwhite-200 rounded-lg text-sm w-64 focus:outline-none focus:ring-2 focus:ring-accent-500/30"
+                placeholder="Search..."
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <NavLink to="/notifications" className="relative p-2 rounded-xl hover:bg-offwhite-200">
+                <Bell className="w-5 h-5 text-navy-600" />
+                {unreadNotifs > 0 && <span className="absolute top-1 right-1 w-2 h-2 bg-error rounded-full" />}
+              </NavLink>
+              <button className="p-2 rounded-xl hover:bg-offwhite-200">
+                <Settings className="w-5 h-5 text-navy-600" />
+              </button>
+            </div>
+            <div className="w-10 h-10 rounded-full border-2 border-offwhite-300 overflow-hidden">
+              <img 
+                alt="Profile" 
+                className="w-full h-full object-cover" 
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuDSd6IGDQ5qlAxgUAQMwx_9O9lvMWQ2qU9MRrzkVUVTeAxfooBJIvUFH8tPeUEy1BpJpFwvefmHfDldb1v9e8ZRduBvoIcVUQShLcAEy6QOkUgby1XGGCAo_fy-2p5O37XbZrqWLVSQ6yqXk7GO79_xglwz3bUJYzsFArk2oz2A3NTGPEGi60U_-n2pV2dK__HzyitUP4_pD4FcbFmpzGTElK8lUG88MGtuZDzqMZqmdW_EgjinZCvNE-eUJiSDBuQtt4PDvAQGZa8" 
+              />
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Mobile Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md border-b border-offwhite-300/60 z-40 flex items-center justify-between px-4">
+      <header className="lg:hidden fixed top-0 left-0 right-0 h-14 bg-white/80 backdrop-blur-md border-b border-offwhite-300/60 z-40 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
           <Dumbbell className="w-6 h-6 text-accent-500" />
           <span className="text-base font-bold text-navy-600">FitSync Pro</span>
@@ -105,7 +139,7 @@ export default function UserLayout() {
 
       {/* Mobile Menu Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden fixed inset-0 z-50">
+        <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileMenuOpen(false)} />
           <div className="absolute left-0 top-0 bottom-0 w-72 bg-white shadow-xl">
             <div className="h-14 flex items-center justify-between px-4 border-b border-offwhite-300/60">
@@ -140,7 +174,7 @@ export default function UserLayout() {
       )}
 
       {/* Mobile Bottom Tab Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-offwhite-300/60 z-40 flex items-center justify-around px-2">
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-offwhite-300/60 z-40 flex items-center justify-around px-2">
         {normalNavItems.slice(0, 5).map(item => (
           <NavLink key={item.path} to={item.path}
             className={`flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all ${
@@ -153,7 +187,7 @@ export default function UserLayout() {
       </nav>
 
       {/* Main Content */}
-      <main className="md:ml-64 pt-14 md:pt-0">
+      <main className="lg:ml-64 pt-14 lg:pt-16 pb-20 lg:pb-6">
         <div className="page-container py-6">
           <Outlet />
         </div>
